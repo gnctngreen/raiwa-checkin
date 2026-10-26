@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ข้อมูลทุกอย่างอยู่ใต้ gangs/<รหัสแก๊ง>/...
+    // คนที่รู้รหัสแก๊งเท่านั้นถึงอ่านและเขียนได้ และไม่มีใครดูรายชื่อรหัสทั้งหมดได้
+    match /gangs/{code}/{document=**} {
+      allow read, write: if code.size() >= 6;
+    }
+  }
+}
