@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="logo.png">
+<title>Raiwa เช็คชื่อแก๊ง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky HUD header with gang badge + tabs; one working column (max 980px) of panels. Dark-first, Raiwa deep blue. */
+:root{
+  --bg:#080c18; --panel:#0f1527; --panel2:#151d34; --line:#222c4a; --fg:#e8ecf7; --muted:#8c97b8;
+  --accent:#2f6bff; --accent-ink:#ffffff; --accent-soft:rgba(47,107,255,.16);
+  --good:#21c07a; --warn:#f2b33d; --bad:#ff5d6c;
+  --s-green:#22c55e; --s-orange:#f97316; --s-pink:#f472b6; --s-red:#ef4444; --s-purple:#a855f7; --s-yellow:#facc15; --s-blue:#38bdf8; --s-navy:#3346c9;
+  --f-display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai","Chakra Petch",system-ui,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#eef1f8; --panel:#ffffff; --panel2:#f3f5fb; --line:#d6dcec; --fg:#121a33; --muted:#5b6687;
+  --accent:#0043c6; --accent-ink:#ffffff; --accent-soft:rgba(0,67,198,.10);
+  --good:#0f9a5c; --warn:#b77a00; --bad:#d6304a; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#eef1f8; --panel:#ffffff; --panel2:#f3f5fb; --line:#d6dcec; --fg:#121a33; --muted:#5b6687;
+  --accent:#0043c6; --accent-ink:#ffffff; --accent-soft:rgba(0,67,198,.10);
+  --good:#0f9a5c; --warn:#b77a00; --bad:#d6304a; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
+.hd{display:flex;align-items:center;gap:14px;padding-block:12px}
+.hd img{width:48px;height:48px;border-radius:12px;flex:none}
+.hd h1{font-family:var(--f-display);font-size:22px;margin:0;line-height:1.1;letter-spacing:.02em}
+.hd .sub{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:3px}
+.tag{font-family:var(--f-display);font-size:11px;letter-spacing:.08em;padding:1px 7px;border-radius:5px;border:1px solid var(--line);color:var(--muted)}
+.tag.rw{color:var(--accent);border-color:var(--accent)}
+.hd .grow{flex:1;min-width:0}
+.datebox{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.datebox label{font-size:11px;color:var(--muted);letter-spacing:.06em}
+input[type=date],input[type=time]{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-variant-numeric:tabular-nums}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:0}
+nav.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:9px 12px;color:var(--muted);font-family:var(--f-display);font-weight:600;font-size:14.5px;white-space:nowrap}
+nav.tabs button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--accent)}
+
+main{padding-block:18px 48px;display:flex;flex-direction:column;gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:17px;margin:0 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel .hint{color:var(--muted);font-size:13px;margin:0 0 12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.banner{padding:10px 14px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--line);font-size:13.5px}
+.banner.bad{background:color-mix(in srgb,var(--bad) 14%,transparent)}
+
+/* slot picker */
+.slotgroup{display:flex;flex-direction:column;gap:6px}
+.slotgroup .lbl{font-family:var(--f-display);font-size:12px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.slots{display:flex;flex-wrap:wrap;gap:6px}
+.slot{position:relative;font-family:var(--f-display);font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);min-width:62px}
+.slot .n{display:block;font-size:10.5px;font-weight:500;color:var(--muted)}
+.slot.past{opacity:.6}
+.slot.next{border-color:var(--warn)}
+.slot[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);opacity:1}
+.slot[aria-pressed=true] .n{color:var(--accent-ink)}
+.slot.air{min-width:70px}
+
+/* member toggles */
+.members{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.mem{display:flex;align-items:center;gap:8px;text-align:left;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);min-width:0}
+.mem .no{font-family:var(--f-display);font-size:11.5px;color:var(--muted);width:24px;flex:none;font-variant-numeric:tabular-nums}
+.mem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.mem .ck{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:13px;line-height:1}
+.mem[aria-pressed=true]{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--panel2))}
+.mem[aria-pressed=true] .ck{background:var(--good);border-color:var(--good);color:#fff}
+.mem:disabled{opacity:.4;cursor:not-allowed}
+.count{font-family:var(--f-display);font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);font-weight:500}
+
+/* matrix */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;font-size:13px}
+thead th{font-family:var(--f-display);font-weight:600;color:var(--muted);font-size:12px;background:var(--panel2);position:sticky;top:0}
+th.name,td.name{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1;font-weight:500}
+thead th.name{background:var(--panel2);z-index:2}
+th.air{color:var(--accent)}
+td.cell button{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:transparent;padding:0;color:#fff;font-size:12px}
+td.cell button.on{background:var(--good);border-color:var(--good)}
+td.cell button:disabled{cursor:default}
+tbody tr:last-child td{border-bottom:0}
+td.tot{font-family:var(--f-display);font-weight:600}
+
+/* shop */
+.shops{display:flex;flex-wrap:wrap;gap:8px}
+.shopbtn{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);font-weight:500}
+.dot{width:14px;height:14px;border-radius:50%;flex:none;background:var(--c)}
+.shopbtn[aria-pressed=true]{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c);background:color-mix(in srgb,var(--c) 16%,var(--panel2))}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>span{font-size:12.5px;color:var(--muted);font-weight:500}
+.split{font-family:var(--f-display);font-size:15px;padding:10px 14px;border-radius:10px;background:var(--panel2);border:1px dashed var(--line)}
+.split b{color:var(--accent)}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:10px 18px;font-weight:600;font-family:var(--f-display);font-size:15px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn.sm{padding:5px 12px;font-size:13px;border-radius:8px}
+.btn.danger{background:var(--bad);color:#fff}
+.rounds{display:flex;flex-direction:column;gap:8px}
+.round{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;background:var(--panel2);flex-wrap:wrap}
+.round .t{font-family:var(--f-display);font-weight:700;font-variant-numeric:tabular-nums;font-size:16px;min-width:52px}
+.round .body{flex:1;min-width:180px}
+.round .who{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip{font-size:12px;padding:1px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}
+.round .pts{font-family:var(--f-display);font-size:13px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13.5px;padding:14px;text-align:center;border:1px dashed var(--line);border-radius:10px}
+
+/* points */
+.pts-list{display:flex;flex-direction:column;gap:6px}
+.prow{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.prow .no{font-family:var(--f-display);color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.prow .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:3px}
+.boxes{display:flex;align-items:center;gap:10px}
+.bx{font-family:var(--f-display);text-align:right;line-height:1.1}
+.bx b{font-size:22px;font-variant-numeric:tabular-nums}
+.bx small{display:block;font-size:11px;color:var(--muted)}
+.bx.has b{color:var(--good)}
+.claimbox{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:8px;border-top:1px dashed var(--line)}
+.step{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.step button{background:var(--panel);border:0;width:32px;height:32px;font-size:16px}
+.step span{width:36px;text-align:center;font-family:var(--f-display);font-weight:700}
+.hist{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.hist div{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.hist .when{color:var(--muted);font-variant-numeric:tabular-nums;min-width:120px}
+
+/* summary */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:6px 12px;font-size:13px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.rank{font-family:var(--f-display);font-weight:700}
+/* loot */
+.lootbox{border-top:1px dashed var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.lootbox h3{font-family:var(--f-display);font-size:15px;margin:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lrows{display:flex;flex-direction:column;gap:6px}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) 84px minmax(70px,auto) 32px;gap:8px;align-items:center}
+.lrow select,.lrow input,.txt{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0;width:100%}
+.txt{width:auto;flex:1;min-width:160px}
+.lrow input{font-variant-numeric:tabular-nums;text-align:right}
+.share{font-family:var(--f-display);font-variant-numeric:tabular-nums;font-size:13.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.share b{color:var(--good);font-size:15px}
+.x{background:transparent;border:1px solid var(--line);border-radius:8px;height:32px;color:var(--muted)}
+.dirty{font-size:12px;color:var(--warn);font-weight:500}
+.lootlist{display:flex;flex-direction:column;gap:3px;margin-top:6px;font-size:13.5px}
+.lootlist div{display:flex;gap:8px;justify-content:space-between;border-bottom:1px dotted var(--line);padding:2px 0}
+.lootlist span:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
+.lootlist b{color:var(--good)}
+.picks{display:flex;flex-wrap:wrap;gap:6px}
+.pick{padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);font-size:13.5px;font-weight:500}
+.pick.on{border-color:var(--good);color:var(--good);background:color-mix(in srgb,var(--good) 12%,var(--panel2))}
+.cat{display:flex;flex-direction:column;gap:6px}
+.citem{display:flex;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);flex-wrap:wrap}
+.citem .nm{flex:1;min-width:120px;font-weight:500}
+@media (max-width:520px){.lrow{grid-template-columns:minmax(0,1fr) 70px 32px}.lrow .share{grid-column:1/3;text-align:left}}
+/* history */
+.hgrid{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:18px;align-items:start}
+.hlist{display:flex;flex-direction:column;gap:4px}
+.hbtn{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;padding:8px 10px;border-radius:9px;border:1px solid transparent;background:transparent}
+.hbtn:hover{background:var(--panel2)}
+.hbtn[aria-current=true]{background:var(--accent-soft);border-color:var(--accent)}
+.hbtn .no{font-family:var(--f-display);font-size:11.5px;color:var(--muted)}
+.hbtn .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.hbtn .n{font-family:var(--f-display);font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:10px 0 16px}
+.stat{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.stat b{display:block;font-family:var(--f-display);font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:12px;color:var(--muted)}
+.days{display:flex;flex-direction:column}
+.day{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.day .d{font-family:var(--f-display);font-weight:600;font-size:14px}
+.day .d small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+.acts{display:flex;flex-direction:column;gap:6px;min-width:0}
+.tchips{display:flex;flex-wrap:wrap;gap:4px}
+.tc{font-family:var(--f-display);font-variant-numeric:tabular-nums;font-size:12.5px;padding:1px 8px;border-radius:6px;border:1px solid var(--line)}
+.tc.a{border-color:var(--accent);color:var(--accent)}
+.sline{font-size:13.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lline{font-size:13px;color:var(--muted)}
+.lline b{color:var(--good);font-weight:600}
+.mlink{background:none;border:0;padding:0;color:inherit;font-weight:500;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.mlink:hover{text-decoration-color:var(--accent)}
+@media (max-width:760px){.hgrid{grid-template-columns:1fr}.hlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.day{grid-template-columns:1fr;gap:4px}}
+.dc{margin-left:auto;font-family:var(--f-body);font-weight:500}
+.dc::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#5865f2;margin-right:7px;vertical-align:middle}
+.sharebar{position:fixed;inset:auto 0 0 0;z-index:25;background:var(--panel);border-top:2px solid #5865f2;box-shadow:0 -8px 30px rgba(0,0,0,.3);padding-block:12px calc(12px + env(safe-area-inset-bottom,0px))}
+.sbin{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sbin #shareMsg{flex:1;min-width:180px;font-weight:500}
+a.btn{text-decoration:none;display:inline-block}
+#shareGo{background:#5865f2;color:#fff}
+.copybox{position:fixed;inset:auto 0 0 0;z-index:30;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -8px 30px rgba(0,0,0,.3);padding-block:14px calc(14px + env(safe-area-inset-bottom,0px))}
+.copybox textarea{width:100%;height:180px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font:13px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
+/* random */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px;align-items:start}
+.rcard{display:flex;flex-direction:column;gap:12px}
+.rcard .hint{margin:0}
+.rchips{display:flex;flex-wrap:wrap;gap:8px}
+.rchip{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);font-weight:500}
+.rchip .dot{background:var(--c)}
+.rchip[aria-pressed=false]{opacity:.45;text-decoration:line-through}
+.rresult{height:132px;border-radius:14px;border:1px dashed var(--line);display:grid;place-items:center;text-align:center;background:var(--panel2);transition:background .15s,border-color .15s}
+.rresult .rq{font-family:var(--f-display);font-size:44px;font-weight:700;color:var(--muted)}
+.rresult.on{border-style:solid;border-color:var(--c);background:color-mix(in srgb,var(--c) 22%,var(--panel2))}
+.rresult .rball{width:58px;height:58px;border-radius:50%;background:var(--c);margin:0 auto 6px;box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 35%,transparent)}
+.rresult .rname{font-family:var(--f-display);font-size:24px;font-weight:700;line-height:1.1}
+.rresult.spin .rname{opacity:.7}
+.rresult.done .rball{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.rresult.done .rball{animation:none}}
+.rbtn{flex:1;min-width:160px;padding:12px 18px;font-size:16px}
+.rhist{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:18px}
+.rhist .tc{display:inline-flex;align-items:center;gap:5px}
+.rhist .dot{width:9px;height:9px;background:var(--c)}
+/* pool */
+.poolgrid{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:12px;align-items:start;margin-bottom:12px}
+.poolgrid .stat .meta{display:block;margin-top:4px}
+.pitems{display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.pitem{display:flex;gap:8px;align-items:baseline;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.pitem b{font-family:var(--f-display);font-size:18px;font-variant-numeric:tabular-nums;color:var(--good)}
+.pout{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 0;border-top:1px dashed var(--line)}
+.pout select,.pout input{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.pout input{width:80px;text-align:right}
+.pcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;margin-top:18px;align-items:start}
+.pform{display:flex;flex-direction:column;gap:10px}
+.pform select,.pform input{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.pform .btn{align-self:flex-start}
+.mrows{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) 76px 34px;gap:6px;align-items:center}
+.mrow.nn{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 76px 34px}
+.mrow input[type=number]{text-align:right}
+@media (max-width:520px){.mrow.nn{grid-template-columns:minmax(0,1fr) 76px 34px}.mrow.nn input[type=text]{grid-column:1/-1;grid-row:2}}
+.hist .in{color:var(--good);font-weight:600}.hist .out{color:var(--warn);font-weight:600}
+.sub3{font-family:var(--f-display);font-size:14px;margin:6px 0;color:var(--muted)}
+@media (max-width:520px){.poolgrid{grid-template-columns:1fr}}
+.gate{position:fixed;inset:0;z-index:40;background:var(--bg);display:grid;place-items:center;padding:16px}
+.gbox{width:min(360px,100%);display:flex;flex-direction:column;gap:12px;align-items:stretch;text-align:center}
+.gbox img{align-self:center;border-radius:14px}
+.foot{padding-block:0 32px;text-align:center;font-size:13px;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+@media (max-width:520px){
+  .hd{flex-wrap:wrap}.datebox{flex-direction:row;align-items:center;gap:8px;width:100%}
+  .members{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mem .no{display:none}
+}
+@media (prefers-reduced-motion:no-preference){.mem,.slot,.shopbtn{transition:background .12s,border-color .12s}}
+</style>
+
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hd">
+      <img src="logo.png" alt="โลโก้แก๊ง Raiwa">
+      <div class="grow">
+        <h1>Raiwa</h1>
+        <div class="sub"><span class="tag">#07</span><span class="tag rw">RW</span><span id="who">สมาชิก 15 คน</span></div>
+      </div>
+      <div class="datebox">
+        <label for="day">วันที่เช็คชื่อ</label>
+        <input type="date" id="day">
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="checkin" aria-selected="true">เช็คชื่อ</button>
+      <button role="tab" data-tab="random" aria-selected="false">สุ่มลูก</button>
+      <button role="tab" data-tab="loot" aria-selected="false">ของที่ได้</button>
+      <button role="tab" data-tab="pool" aria-selected="false">กองกลาง &amp; เบิกของ</button>
+      <button role="tab" data-tab="shop" aria-selected="false">งัดร้าน</button>
+      <button role="tab" data-tab="points" aria-selected="false">แต้ม &amp; เบิกกล่อง</button>
+      <button role="tab" data-tab="summary" aria-selected="false">สรุป Active</button>
+      <button role="tab" data-tab="history" aria-selected="false">ประวัติสมาชิก</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="status" class="banner">กำลังเชื่อมต่อฐานข้อมูลแก๊ง…</div>
+
+  <section data-view="checkin">
+    <div class="panel">
+      <h2>เช็คชื่อกิจกรรม <span class="count" id="slotLabel"></span><button class="btn sm ghost dc" id="copySlot">คัดลอกรอบนี้ไป Discord</button></h2>
+      <p class="hint">เลือกรอบ แล้วแตะชื่อคนที่มาเล่น แตะซ้ำเพื่อเอาออก ขอบสีเหลือง = รอบถัดไป</p>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="slotgroup"><span class="lbl">Airdrop</span><div class="slots" id="slotsA"></div></div>
+        <div class="slotgroup"><span class="lbl">Mini Supply</span><div class="slots" id="slotsM"></div></div>
+        <div class="members" id="memToggle"></div>
+        <div class="lootbox" id="lootBox"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2>ตารางรวมของวัน</h2>
+      <p class="hint">กดช่องเพื่อติ๊กหรือเอาออกได้เลย คอลัมน์สีฟ้า = Airdrop</p>
+      <div class="scroll"><table id="matrix"></table></div>
+    </div>
+  </section>
+
+  <section data-view="random" hidden>
+    <div class="rgrid">
+      <div class="panel rcard" data-rkind="mini">
+        <h2>สุ่มลูก Mini Supply</h2>
+        <p class="hint">แตะสีเพื่อตัดลูกที่ไม่อยากไปออก แล้วกดสุ่ม</p>
+        <div class="rchips" data-chips="mini"></div>
+        <div class="rresult" data-result="mini" aria-live="polite"><span class="rq">?</span></div>
+        <div class="row"><button class="btn rbtn" data-roll="mini">สุ่ม Mini Supply</button><button class="btn sm ghost" data-rcopy="mini" hidden>คัดลอกไป Discord</button></div>
+        <div class="rhist" data-hist="mini"></div>
+      </div>
+      <div class="panel rcard" data-rkind="air">
+        <h2>สุ่มลูก Airdrop</h2>
+        <p class="hint">แตะสีเพื่อตัดลูกที่ไม่อยากไปออก แล้วกดสุ่ม</p>
+        <div class="rchips" data-chips="air"></div>
+        <div class="rresult" data-result="air" aria-live="polite"><span class="rq">?</span></div>
+        <div class="row"><button class="btn rbtn" data-roll="air">สุ่ม Airdrop</button><button class="btn sm ghost" data-rcopy="air" hidden>คัดลอกไป Discord</button></div>
+        <div class="rhist" data-hist="air"></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-view="pool" hidden>
+    <div class="panel">
+      <h2>กองกลางแก๊ง <button class="btn sm ghost dc" id="copyPool">คัดลอกการ์ดกองกลางไป Discord</button></h2>
+      <p class="hint">กล่องจากร้านที่ยังไม่มีคนเบิก เศษของจาก Airdrop / Mini และของที่เพิ่มเข้ากองกลางเอง</p>
+      <div class="poolgrid">
+        <div class="stat"><b id="poolBoxes">0</b><span>กล่องจากร้านที่ยังไม่เบิก</span><span class="meta" id="poolHold"></span></div>
+        <div class="pitems" id="poolItems"></div>
+      </div>
+    </div>
+    <div class="pcols">
+      <div class="panel">
+        <h2>เบิกของ</h2>
+        <p class="hint">เบิกของออกจากกองกลาง ระบบหักจำนวนให้อัตโนมัติ เบิกเกินที่มีไม่ได้</p>
+        <div class="pform">
+          <div class="field"><span>ของที่เบิก (เบิกได้หลายอย่างในครั้งเดียว)</span><div class="mrows" id="poRows"></div><button class="btn sm ghost" id="poAdd" type="button">+ เพิ่มของอีกอย่าง</button></div>
+          <label class="field"><span>ผู้เบิก</span><select id="poTo"></select></label>
+          <label class="field"><span>หมายเหตุ (ถ้ามี)</span><input type="text" id="poNote" maxlength="80" placeholder="เช่น ใช้ทำภารกิจแก๊ง"></label>
+          <button class="btn" id="poGo">เบิกของ</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>เพิ่มของเข้ากองกลาง</h2>
+        <p class="hint">ใช้ใส่ของที่มีอยู่แล้วแต่ยังไม่ได้อยู่ในระบบ เช่น ของจาก Mini Supply ก่อนเริ่มใช้เว็บ</p>
+        <div class="pform">
+          <div class="field"><span>ของที่เพิ่ม (ใส่ได้หลายอย่างในครั้งเดียว)</span><div class="mrows" id="piRows"></div><button class="btn sm ghost" id="piAdd" type="button">+ เพิ่มของอีกอย่าง</button></div>
+          <label class="field"><span>ได้มาจาก</span><select id="piSrc"><option>Mini Supply</option><option>Airdrop</option><option>งัดร้าน</option><option>อื่นๆ</option></select></label>
+          <label class="field"><span>หมายเหตุ (ถ้ามี)</span><input type="text" id="piNote" maxlength="80" placeholder="เช่น ของค้างก่อนใช้ระบบ"></label>
+          <button class="btn" id="piGo">เพิ่มเข้ากองกลาง</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2>ประวัติเข้า-ออกกองกลาง <span class="count" id="poolHistCount"></span></h2>
+      <div class="hist" id="poolHist"></div>
+    </div>
+  </section>
+
+  <section data-view="loot" hidden>
+    <div class="panel">
+      <h2>ของที่ได้จาก Airdrop / Mini <span class="count" id="lootDayLabel"></span><button class="btn sm ghost dc" id="copyDay">คัดลอกสรุปทั้งวันไป Discord</button></h2>
+      <p class="hint">แต่ละรอบหารตามจำนวนคนที่ติ๊กชื่อ ได้คนละจำนวนเต็ม เศษที่เหลือเข้ากองกลาง บันทึกของได้ที่แท็บ "เช็คชื่อ" ใต้รายชื่อ</p>
+      <div class="rounds" id="lootDay"></div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2>รายการของ <span class="count" id="catCount"></span></h2>
+      <p class="hint">เพิ่ม แก้ชื่อ หรือลบของได้ตลอด ชื่อที่แก้จะเปลี่ยนในทุกรอบที่เคยบันทึก</p>
+      <div class="row" style="margin-bottom:12px"><input type="text" id="catNew" placeholder="ชื่อของ เช่น ปืน, เงินแดง" maxlength="60" class="txt"><button class="btn sm" id="catAdd">เพิ่มเข้ารายการ</button></div>
+      <div class="cat" id="catalog"></div>
+    </div>
+  </section>
+
+  <section data-view="shop" hidden>
+    <div class="panel">
+      <h2>บันทึกการงัดร้าน</h2>
+      <p class="hint">1 รอบได้ 1 กล่อง หารตามจำนวนคนที่เล่น (1–5 คน) แต้มสะสมครบ 1 = เบิกได้ 1 กล่อง</p>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="field"><span>ร้าน</span><div class="shops" id="shopPick"></div></div>
+        <label class="field" style="max-width:180px"><span>เวลาที่เล่น</span><input type="time" id="shopTime"></label>
+        <div class="field"><span>คนที่เล่น <span id="pickCount">(0/5)</span></span><div class="members" id="shopMembers"></div></div>
+        <div class="field"><span>คนเก็บกล่องรอบนี้</span><div class="shops" id="keeperPick"></div></div>
+        <div class="split" id="splitPreview">เลือกร้านและคนเล่นก่อน</div>
+        <div class="banner" id="editBanner" hidden></div>
+        <div class="row"><button class="btn" id="saveShop" disabled>บันทึกรอบนี้</button><button class="btn ghost" id="clearShop">ล้าง</button></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2>รอบร้านของวันนี้ <span class="count" id="roundCount"></span><button class="btn sm ghost dc" id="copyShops">คัดลอกรอบร้านวันนี้ไป Discord</button></h2>
+      <div class="rounds" id="rounds"></div>
+    </div>
+  </section>
+
+  <section data-view="points" hidden>
+    <div class="panel">
+      <h2>แต้มสะสม &amp; กล่องที่เบิกได้<button class="btn sm ghost dc" id="copyPts">คัดลอกตารางแต้มไป Discord</button></h2>
+      <p class="hint">แต้มคิดจากทุกรอบร้านที่บันทึกไว้ หักกล่องที่เบิกไปแล้ว แถบแสดงความคืบหน้าสู่กล่องถัดไป</p>
+      <div class="pts-list" id="ptsList"></div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2>กล่องอยู่กับใคร</h2>
+      <p class="hint">นับจากรอบร้านที่แต่ละคนเป็นคนเก็บกล่อง หักกล่องที่ส่งให้คนเบิกไปแล้ว</p>
+      <div class="scroll"><table id="keeperTable"></table></div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2>รายการเบิกกล่อง <span class="count" id="claimCount"></span></h2>
+      <div class="hist" id="claimHist"></div>
+    </div>
+  </section>
+
+  <section data-view="summary" hidden>
+    <div class="panel">
+      <h2>สรุปการ Active
+        <span class="seg" id="rangeSeg"><button data-r="1">วันที่เลือก</button><button data-r="7" aria-pressed="true">7 วัน</button><button data-r="30">30 วัน</button></span>
+      </h2>
+      <p class="hint" id="rangeHint"></p>
+      <div class="scroll"><table id="sumTable"></table></div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2>ห้อง Discord ของแก๊ง</h2>
+      <p class="hint">ใน Discord คลิกขวาที่ห้อง (มือถือ: กดค้าง) แล้วเลือก "Copy Link" นำมาวางที่นี่ หลังบันทึกข้อมูล จะมีปุ่มคัดลอกข้อความแล้วเปิดห้องนี้ให้วางได้ทันที</p>
+      <div class="row"><input type="url" class="txt" id="dcUrl" placeholder="https://discord.com/channels/…" maxlength="300"><button class="btn sm" id="dcSave">บันทึกห้อง</button></div>
+      <p class="hint" id="dcNow" style="margin:8px 0 0"></p>
+    </div>
+  </section>
+  <section data-view="history" hidden>
+    <div class="hgrid">
+      <div class="panel">
+        <h2>รายชื่อ</h2>
+        <p class="hint" id="histHint"></p>
+        <div class="hlist" id="histList"></div>
+      </div>
+      <div class="panel" id="histDetail"></div>
+    </div>
+  </section>
+</main>
+<div class="gate" id="gate" hidden><div class="panel gbox"><img src="logo.png" alt="" width="56" height="56"><h2>ใส่รหัสแก๊ง</h2><p class="hint">ขอรหัสจากหัวแก๊ง ใส่ครั้งเดียว เครื่องนี้จะจำไว้</p><input type="password" class="txt" id="gateCode" autocomplete="off" placeholder="รหัสแก๊ง"><button class="btn" id="gateGo">เข้าใช้งาน</button><p class="hint" id="gateMsg" style="color:var(--bad);margin:0"></p></div></div>
+<footer class="wrap foot"><button class="mlink" id="logout">เปลี่ยนรหัสแก๊ง / ออกจากระบบ</button></footer>
+<div class="toast" id="toast" hidden></div>
+<div class="sharebar" id="shareBar" hidden><div class="wrap sbin"><span id="shareMsg"></span><a class="btn sm" id="shareGo" target="_blank" rel="noopener" hidden>คัดลอก &amp; เปิด Discord</a><button class="btn sm" id="shareCopy" hidden>คัดลอกไป Discord</button><button class="btn sm ghost" id="shareClose">ปิด</button></div></div>
+<div class="copybox" id="copyBox" hidden><div class="wrap" style="display:flex;flex-direction:column;gap:8px"><div class="row"><b>คัดลอกข้อความนี้ไปวางใน Discord</b><span class="count" id="copyLen"></span><button class="btn sm ghost" id="copyClose" style="margin-left:auto">ปิด</button></div><textarea id="copyText" readonly aria-label="ข้อความสำหรับ Discord"></textarea><div class="row"><button class="btn sm" id="copyAgain">คัดลอก</button><span class="count">ถ้าปุ่มคัดลอกไม่ทำงาน กดค้างที่ข้อความ เลือกทั้งหมด แล้วคัดลอก</span></div></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+const MEMBERS=["Marcos Avocado","Tongtang Tatugthung","Stitch Ohana","Panda Novice","Ada Dd","Holy Krab","PP Shiest","Thanjai Kamontivakorn","Zebra Grey","Ba Babe","Bacon Rip","Tuu Challi","Bearry Rice","Izax Shiest","Karon Dd"].map((n,i)=>({id:"m"+(i+1),no:i+1,name:n}));
+const AIR=["13:00","16:30","20:00","23:00"];
+const MINI=["00:00","01:30","02:00","02:30","03:30","04:30","08:30","09:30","11:00","12:30","14:30","15:30","20:30","21:30","22:30","23:30"];
+const SLOTS=[...AIR.map(t=>({k:"a"+t.replace(":",""),t,type:"a"})),...MINI.map(t=>({k:"m"+t.replace(":",""),t,type:"m"}))];
+const SHOPS=[{k:"green",n:"ร้านเขียว",c:"var(--s-green)"},{k:"orange",n:"ร้านส้ม",c:"var(--s-orange)"},{k:"pink",n:"ร้านชมพู",c:"var(--s-pink)"},{k:"red",n:"ร้านแดง",c:"var(--s-red)"},{k:"purple",n:"ร้านม่วง",c:"var(--s-purple)"},{k:"yellow",n:"ร้านเหลือง",c:"var(--s-yellow)"},{k:"blue",n:"ร้านฟ้า",c:"var(--s-blue)"},{k:"navy",n:"ร้านน้ำเงิน",c:"var(--s-navy)"}];
+const U=60; // แต้มเก็บเป็นหน่วย 1/60 ให้หาร 1–5 คนลงตัวพอดี
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const memName=id=>(MEMBERS.find(m=>m.id===id)||{name:"?"}).name;
+const shopOf=k=>SHOPS.find(s=>s.k===k)||SHOPS[0];
+const fmtPts=u=>(u/U).toFixed(2);
+
+function bkkNow(){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Bangkok",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());const g=t=>p.find(x=>x.type===t).value;return{date:`${g("year")}-${g("month")}-${g("day")}`,time:`${g("hour")}:${g("minute")}`}}
+function addDays(d,n){const x=new Date(d+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}
+function thDate(d){return new Date(d+"T00:00:00Z").toLocaleDateString("th-TH",{timeZone:"UTC",day:"numeric",month:"short",year:"2-digit"})}
+
+const S={day:bkkNow().date,slot:null,att:{},attRange:{},shops:[],claims:[],canWrite:true,db:null,shopSel:null,shopMem:[],range:7,claimOpen:null,claimN:1,confirmDel:null,confirmClaimDel:null,editId:null,items:[],loot:{},draft:{slot:null,rows:[],dirty:false},catEdit:null,catDel:null,hMember:"m1",lootRange:{}};
+const fmtQ=x=>{const r=Math.round(x*100)/100;return r.toLocaleString("en-US",{maximumFractionDigits:2})};
+const split=(q,n)=>{q=+q||0;if(!n)return{each:0,rem:q};const each=Math.floor(q/n);return{each,rem:q-each*n}};
+const shareHtml=(q,n)=>{if(!n||!q)return "–";const {each,rem}=split(q,n);return `คนละ <b>${fmtQ(each)}</b>${rem?` <span class="count">· เศษ ${fmtQ(rem)} เข้ากองกลาง</span>`:""}`};
+const itemName=r=>{const it=S.items.find(i=>i.id===r.item);return it?it.name:(r.name||"ของที่ถูกลบ")};
+
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
+function status(msg,bad){const s=$("#status");if(!msg){s.hidden=true;return}s.hidden=false;s.textContent=msg;s.classList.toggle("bad",!!bad)}
+
+/* ---------- tabs ---------- */
+function showTab(t){document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));document.querySelectorAll("[data-view]").forEach(v=>v.hidden=v.dataset.view!==t)}
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{showTab(b.dataset.tab);try{history.replaceState(null,"","#"+b.dataset.tab)}catch(e){}});
+const h=(location.hash||"").slice(1);if(["checkin","random","loot","pool","shop","points","summary","history"].includes(h))showTab(h);
+
+/* ---------- check-in ---------- */
+function pickDefaultSlot(){const n=bkkNow();if(S.day!==n.date){S.slot=SLOTS[0].k;return}
+  const sorted=[...SLOTS].sort((a,b)=>a.t.localeCompare(b.t));let cur=sorted.filter(s=>s.t<=n.time).pop();S.slot=(cur||sorted[0]).k}
+function nextSlotKey(){const n=bkkNow();if(S.day!==n.date)return null;const sorted=[...SLOTS].sort((a,b)=>a.t.localeCompare(b.t));const nx=sorted.find(s=>s.t>n.time);return nx?nx.k:null}
+function isOn(mid,k){const d=S.att[mid];return !!(d&&d.s&&d.s[k])}
+function slotCount(k){return MEMBERS.filter(m=>isOn(m.id,k)).length}
+function renderSlots(){const n=bkkNow(),nx=nextSlotKey(),today=S.day===n.date;
+  for(const [type,el] of [["a","#slotsA"],["m","#slotsM"]]){
+    $(el).innerHTML=SLOTS.filter(s=>s.type===type).map(s=>{const c=slotCount(s.k);const past=today&&s.t<=n.time&&s.k!==S.slot;
+      return `<button class="slot ${type==="a"?"air":""} ${past?"past":""} ${s.k===nx?"next":""}" data-slot="${s.k}" aria-pressed="${s.k===S.slot}">${s.t}<span class="n">${c?c+" คน":"–"}</span></button>`}).join("")}
+  document.querySelectorAll("[data-slot]").forEach(b=>b.onclick=()=>{S.slot=b.dataset.slot;renderCheckin()});
+  const s=SLOTS.find(x=>x.k===S.slot);$("#slotLabel").textContent=`${s.type==="a"?"Airdrop":"Mini Supply"} ${s.t} · ${slotCount(s.k)}/15 คน`}
+function renderToggles(){$("#memToggle").innerHTML=MEMBERS.map(m=>{const on=isOn(m.id,S.slot);
+  return `<button class="mem" data-mid="${m.id}" aria-pressed="${on}" ${S.canWrite?"":"disabled"}><span class="no">#${m.no}</span><span class="nm">${esc(m.name)}</span><span class="ck">${on?"✓":""}</span></button>`}).join("");
+  document.querySelectorAll("#memToggle .mem").forEach(b=>b.onclick=()=>toggleAtt(b.dataset.mid,S.slot))}
+function renderMatrix(){const cols=[...SLOTS].sort((a,b)=>a.t.localeCompare(b.t)||a.type.localeCompare(b.type));
+  let html=`<thead><tr><th class="name">สมาชิก</th>${cols.map(c=>`<th class="${c.type==="a"?"air":""}" title="${c.type==="a"?"Airdrop":"Mini Supply"}">${c.type==="a"?"✈ ":""}${c.t}</th>`).join("")}<th>รวม</th></tr></thead><tbody>`;
+  for(const m of MEMBERS){let tot=0;html+=`<tr><td class="name">${esc(m.name)}</td>`+cols.map(c=>{const on=isOn(m.id,c.k);if(on)tot++;return `<td class="cell"><button class="${on?"on":""}" data-m="${m.id}" data-k="${c.k}" aria-label="${esc(m.name)} ${c.t}" ${S.canWrite?"":"disabled"}>${on?"✓":""}</button></td>`}).join("")+`<td class="tot">${tot}</td></tr>`}
+  html+=`<tr><td class="name"><b>รวมคน</b></td>${cols.map(c=>`<td class="tot">${slotCount(c.k)||""}</td>`).join("")}<td></td></tr></tbody>`;
+  $("#matrix").innerHTML=html;
+  document.querySelectorAll("#matrix td.cell button").forEach(b=>b.onclick=()=>toggleAtt(b.dataset.m,b.dataset.k))}
+function renderCheckin(){renderSlots();renderToggles();renderMatrix();renderLootEditor(false)}
+
+/* ---------- loot (Airdrop / Mini) ---------- */
+let builtFor=null;
+function syncDraft(){if(S.draft.slot!==S.slot||!S.draft.dirty){S.draft={slot:S.slot,rows:((S.loot[S.slot]||{}).items||[]).map(x=>({...x})),dirty:false};return true}return false}
+function itemOptions(sel){const opts=S.items.map(i=>`<option value="${i.id}" ${i.id===sel?"selected":""}>${esc(i.name)}</option>`).join("");
+  const missing=sel&&!S.items.find(i=>i.id===sel)?`<option value="${esc(sel)}" selected>(ของที่ถูกลบ)</option>`:"";
+  return `<option value="" ${sel?"":"selected"}>— เลือกของ —</option>${missing}${opts}`}
+function renderLootEditor(force){const changed=syncDraft();const key=S.day+"|"+S.slot+"|"+S.items.length;
+  if(!force&&!changed&&builtFor===key){renderShares();return}
+  builtFor=key;const s=SLOTS.find(x=>x.k===S.slot);const d=S.draft;
+  $("#lootBox").innerHTML=`<h3>ของที่ได้รอบ ${s.type==="a"?"Airdrop":"Mini"} ${s.t} <span class="count" id="lootN"></span> <span class="dirty" id="lootDirty"></span></h3>
+    <div class="lrows" id="lrows">${d.rows.map((r,i)=>`<div class="lrow" data-i="${i}"><select data-f="item" aria-label="ของ" ${S.canWrite?"":"disabled"}>${itemOptions(r.item)}</select><input type="number" data-f="qty" min="0" step="1" inputmode="decimal" value="${r.qty??""}" aria-label="จำนวน" ${S.canWrite?"":"disabled"}><span class="share" data-share="${i}"></span><button class="x" data-rm="${i}" aria-label="ลบแถว" ${S.canWrite?"":"disabled"}>✕</button></div>`).join("")||`<div class="empty">ยังไม่ได้บันทึกของรอบนี้</div>`}</div>
+    ${S.canWrite?`<div class="field"><span>แตะเพื่อเพิ่มของที่เคยบันทึก${S.items.length?"":" (ยังไม่มี เพิ่มของใหม่ได้ด้านล่าง)"}</span><div class="picks">${S.items.map(i=>{const on=d.rows.some(r=>r.item===i.id);return `<button class="pick ${on?"on":""}" data-pick="${i.id}">${on?"✓ ":"+ "}${esc(i.name)}</button>`}).join("")}</div></div>
+    <div class="row"><input type="text" class="txt" id="lootNewName" list="itemNames" placeholder="พิมพ์ชื่อของใหม่" maxlength="60"><datalist id="itemNames">${S.items.map(i=>`<option value="${esc(i.name)}"></option>`).join("")}</datalist><button class="btn sm ghost" id="lootNewBtn">เพิ่มของใหม่</button></div>
+    <div class="row"><button class="btn sm" id="lootSave">บันทึกของรอบนี้</button>${d.dirty?`<button class="btn sm ghost" id="lootReset">ยกเลิกการแก้</button>`:""}</div>`:""}`;
+  const box=$("#lootBox");
+  box.querySelectorAll("[data-f=item]").forEach(el=>el.onchange=()=>{const i=+el.closest(".lrow").dataset.i;const it=S.items.find(x=>x.id===el.value);d.rows[i].item=el.value;d.rows[i].name=it?it.name:"";d.dirty=true;renderShares()});
+  box.querySelectorAll("[data-f=qty]").forEach(el=>el.oninput=()=>{const i=+el.closest(".lrow").dataset.i;d.rows[i].qty=el.value===""?"":Math.max(0,+el.value);d.dirty=true;renderShares()});
+  box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{d.rows.splice(+b.dataset.rm,1);d.dirty=true;renderLootEditor(true)});
+  const pickItem=id=>{const it=S.items.find(x=>x.id===id);const ex=d.rows.find(r=>r.item===id);if(ex)ex.qty=(+ex.qty||0)+1;else d.rows.push({item:id,name:it?it.name:"",qty:1});d.dirty=true;renderLootEditor(true)};
+  box.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>pickItem(b.dataset.pick));
+  const nb=$("#lootNewBtn");if(nb){const go=async()=>{const nm=$("#lootNewName").value.trim();if(!nm)return;const id=await addItem(nm,true);if(id)pickItem(id)};nb.onclick=go;$("#lootNewName").onkeydown=e=>{if(e.key==="Enter")go()}}
+  const rs=$("#lootReset");if(rs)rs.onclick=()=>{d.dirty=false;renderLootEditor(true)};
+  const sv=$("#lootSave");if(sv)sv.onclick=saveLoot;
+  renderShares()}
+function renderShares(){const n=slotCount(S.slot),d=S.draft;const nEl=$("#lootN");if(!nEl)return;
+  nEl.textContent=n?`· หาร ${n} คน`:"· ยังไม่มีคนติ๊กชื่อ";$("#lootDirty").textContent=d.dirty?"ยังไม่บันทึก":"";
+  d.rows.forEach((r,i)=>{const el=document.querySelector(`[data-share="${i}"]`);if(!el)return;const q=+r.qty||0;el.innerHTML=shareHtml(q,n)})}
+async function saveLoot(){if(!S.db)return;const d=S.draft,slot=d.slot,day=S.day;
+  const rows=d.rows.filter(r=>r.item&&+r.qty>0).map(r=>({item:r.item,name:itemName(r),qty:+r.qty}));
+  const ref=S.db.collection("loot").doc(`${day}_${slot}`);$("#lootSave").disabled=true;
+  try{if(rows.length)await ref.set({date:day,slot,items:rows,at:new Date().toISOString()});else await ref.delete();
+    if(day===S.day)writePool(`${day}_${slot}`,rows,slotCount(slot));
+    d.dirty=false;d.rows=rows.map(x=>({...x}));S.loot={...S.loot,[slot]:{date:day,slot,items:rows}};const sv=S.slot;S.slot=slot;const txt=slotText(slot);S.slot=sv;share("บันทึกของรอบนี้แล้ว",txt);renderLootEditor(true)}catch(e){writeErr(e);renderLootEditor(true)}}
+async function addItem(name,quiet){const dup=S.items.find(i=>i.name.toLowerCase()===name.toLowerCase());if(dup){if(!quiet)toast("มีของชื่อนี้ในรายการแล้ว");return dup.id}
+  if(!S.db||!S.canWrite)return null;try{const ref=S.db.collection("items").doc();await ref.set({name,at:new Date().toISOString()});
+    if(!S.items.find(i=>i.id===ref.id))S.items=[...S.items,{id:ref.id,name}];toast(`เพิ่ม "${name}" แล้ว`);return ref.id}catch(e){writeErr(e);return null}}
+
+function renderLootDay(){renderPool();$("#lootDayLabel").textContent=thDate(S.day);
+  const list=SLOTS.filter(s=>S.loot[s.k]&&(S.loot[s.k].items||[]).length).sort((a,b)=>a.t.localeCompare(b.t));
+  if(!list.length){$("#lootDay").innerHTML=`<div class="empty">ยังไม่มีการบันทึกของในวันนี้ ไปที่แท็บ "เช็คชื่อ" เลือกรอบ แล้วกด "+ เพิ่มของ"</div>`;return}
+  $("#lootDay").innerHTML=list.map(s=>{const n=slotCount(s.k);const who=MEMBERS.filter(m=>isOn(m.id,s.k));
+    return `<div class="round" style="--c:${s.type==="a"?"var(--accent)":"var(--muted)"}"><span class="t">${s.t}</span><div class="body"><div class="row"><b>${s.type==="a"?"Airdrop":"Mini Supply"}</b><span class="pts">${n?n+" คน":"ยังไม่มีคนติ๊กชื่อ"}</span></div>
+    <div class="lootlist">${S.loot[s.k].items.map(r=>`<div><span>${esc(itemName(r))} × ${fmtQ(r.qty)}</span><span>${n?shareHtml(r.qty,n):"ยังไม่มีคนติ๊กชื่อ ทั้งหมดอยู่ในกองกลาง"}</span></div>`).join("")}</div>
+    <div class="who">${who.map(m=>`<span class="chip">${esc(m.name)}</span>`).join("")}</div></div></div>`}).join("")}
+
+function renderCatalog(){$("#catCount").textContent=S.items.length?`${S.items.length} รายการ`:"";
+  if(!S.items.length){$("#catalog").innerHTML=`<div class="empty">ยังไม่มีของในรายการ พิมพ์ชื่อของด้านบนแล้วกด "เพิ่มเข้ารายการ"</div>`;return}
+  $("#catalog").innerHTML=S.items.map(i=>{if(S.catEdit===i.id)return `<div class="citem"><input type="text" class="txt" id="catEditIn" value="${esc(i.name)}" maxlength="60"><button class="btn sm" data-csave="${i.id}">บันทึกชื่อ</button><button class="btn sm ghost" data-cx>ยกเลิก</button></div>`;
+    if(S.catDel===i.id)return `<div class="citem"><span class="nm">ลบ "${esc(i.name)}" ออกจากรายการ? รอบที่บันทึกไว้แล้วยังเห็นชื่อเดิม</span><button class="btn sm danger" data-cdelok="${i.id}">ยืนยันลบ</button><button class="btn sm ghost" data-cx>ยกเลิก</button></div>`;
+    return `<div class="citem"><span class="nm">${esc(i.name)}</span>${S.canWrite?`<button class="btn sm ghost" data-ced="${i.id}">แก้ชื่อ</button><button class="btn sm ghost" data-cdl="${i.id}">ลบ</button>`:""}</div>`}).join("");
+  const c=$("#catalog");
+  c.querySelectorAll("[data-ced]").forEach(b=>b.onclick=()=>{S.catEdit=b.dataset.ced;S.catDel=null;renderCatalog();const el=$("#catEditIn");if(el)el.focus()});
+  c.querySelectorAll("[data-cdl]").forEach(b=>b.onclick=()=>{S.catDel=b.dataset.cdl;S.catEdit=null;renderCatalog()});
+  c.querySelectorAll("[data-cx]").forEach(b=>b.onclick=()=>{S.catEdit=null;S.catDel=null;renderCatalog()});
+  c.querySelectorAll("[data-csave]").forEach(b=>b.onclick=async()=>{const nm=$("#catEditIn").value.trim();if(!nm)return;b.disabled=true;try{await S.db.collection("items").doc(b.dataset.csave).update({name:nm});S.catEdit=null;toast("แก้ชื่อแล้ว")}catch(e){writeErr(e)}});
+  c.querySelectorAll("[data-cdelok]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await S.db.collection("items").doc(b.dataset.cdelok).delete();S.catDel=null;toast("ลบออกจากรายการแล้ว")}catch(e){writeErr(e)}})}
+$("#catAdd").onclick=async()=>{const el=$("#catNew"),nm=el.value.trim();if(!nm)return;if(await addItem(nm)){el.value="";renderCatalog()}};
+$("#catNew").onkeydown=e=>{if(e.key==="Enter")$("#catAdd").click()};
+
+const chains={};
+/* ---------- กองกลาง ---------- */
+function mergeWrite(ref,data){if(S.fbMode)return ref.set(data,{merge:true});return ref.get().then(sn=>sn.exists?ref.update(data):ref.set(data))}
+function remArr(items,n){return (items||[]).map(r=>({i:r.item,q:split(r.qty,n).rem,n:itemName(r)})).filter(x=>x.q>0)}
+function writePool(key,items,n){const arr=remArr(items,n);const cur=((S.pool||{}).byRound||{})[key];if(JSON.stringify(cur||[])===JSON.stringify(arr))return;
+  S.pool={...(S.pool||{}),byRound:{...((S.pool||{}).byRound||{}),[key]:arr}};renderPool();
+  chains.pool=(chains.pool||Promise.resolve()).then(()=>mergeWrite(S.db.doc("config/pool"),{byRound:{[key]:arr}})).catch(writeErr)}
+function poolItems(){const T={};for(const arr of Object.values((S.pool||{}).byRound||{}))for(const e of (arr||[])){if(!e||!e.i)continue;T[e.i]=T[e.i]||{id:e.i,qty:0,name:e.n};T[e.i].qty+=+e.q||0}
+  for(const o of S.poolOut||[])for(const e of poList(o)){T[e.item]=T[e.item]||{id:e.item,qty:0,name:e.name};T[e.item].qty+=(o.type==="in"?1:-1)*(+e.qty||0)}
+  return Object.values(T).map(x=>({...x,name:itemName({item:x.id,name:x.name})})).filter(x=>x.qty>0).sort((a,b)=>b.qty-a.qty)}
+const poList=o=>Array.isArray(o.items)?o.items:(o.item?[{item:o.item,name:o.name,qty:o.qty}]:[]);
+const poText=o=>poList(o).map(e=>`${itemName({item:e.item,name:e.name})} × ${fmtQ(e.qty)}`).join(", ");
+S.wd=[{item:"",qty:1}];S.dp=[{item:"",qty:1,nn:""}];const rowsKey={};
+function renderRows(kind,force){const P=poolItems(),rows=kind==="wd"?S.wd:S.dp;
+  const opts=kind==="wd"?P.map(x=>[x.id,`${x.name} (มี ${fmtQ(x.qty)})`]):[...S.items.map(i=>[i.id,i.name]),["__new","+ ของใหม่ (พิมพ์ชื่อ)"]];
+  const key=JSON.stringify([opts,rows.map(r=>r.item),S.canWrite]);if(!force&&rowsKey[kind]===key)return;rowsKey[kind]=key;
+  $(kind==="wd"?"#poRows":"#piRows").innerHTML=rows.map((r,i)=>`<div class="mrow ${r.item==="__new"?"nn":""}" data-i="${i}"><select data-k="${kind}" data-f="item" aria-label="ของ"><option value="">— เลือกของ —</option>${opts.map(([v,t])=>`<option value="${v}" ${v===r.item?"selected":""}>${esc(t)}</option>`).join("")}</select>${r.item==="__new"?`<input type="text" data-k="${kind}" data-f="nn" value="${esc(r.nn||"")}" placeholder="ชื่อของใหม่" maxlength="60" aria-label="ชื่อของใหม่">`:""}<input type="number" min="1" step="1" inputmode="numeric" data-k="${kind}" data-f="qty" value="${r.qty}" aria-label="จำนวน"><button class="x" type="button" data-k="${kind}" data-rm="${i}" aria-label="ลบแถว" ${rows.length<2?"disabled":""}>✕</button></div>`).join("")}
+function poolBoxes(){return Math.max(0,S.shops.length-S.claims.reduce((a,c)=>a+(c.boxes||0),0))}
+function renderPool(){if(!$("#poolBoxes"))return;const P=poolItems(),{K}=keepers();
+  $("#poolBoxes").textContent=poolBoxes();const hold=MEMBERS.filter(m=>K[m.id].hold>0);$("#poolHold").textContent=hold.length?"อยู่กับ "+hold.map(m=>`${m.name} ${K[m.id].hold}`).join(", "):"";
+  $("#poolItems").innerHTML=P.length?P.map(x=>`<div class="pitem"><span>${esc(x.name)}</span><b>${fmtQ(x.qty)}</b></div>`).join(""):`<div class="empty" style="flex:1">ยังไม่มีเศษของในกองกลาง</div>`;
+  const keepSel=(el,html)=>{const v=el.value;el.innerHTML=html;if(v&&[...el.options].some(o=>o.value===v))el.value=v};
+  renderRows("wd");renderRows("dp");
+  keepSel($("#poTo"),`<option value="">ใช้ในแก๊ง / ไม่ระบุคน</option>`+MEMBERS.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join(""));
+  $("#poGo").disabled=!S.canWrite||!P.length;$("#piGo").disabled=!S.canWrite;
+  const H=[...(S.poolOut||[])].sort((a,b)=>(b.at||"").localeCompare(a.at||"")).slice(0,40);
+  $("#poolHistCount").textContent=(S.poolOut||[]).length?`${(S.poolOut||[]).length} รายการ`:"";
+  $("#poolHist").innerHTML=H.length?H.map(o=>{const conf=S.poDel===o.id;return `<div><span class="when">${thDate(o.date)} ${esc(o.time||"")}</span>${o.type==="in"?`<span class="in">+ เข้า</span>`:`<span class="out">− เบิก</span>`}<b>${esc(poText(o))}</b><span class="count">${o.type==="in"?"จาก "+esc(o.src||"-"):(o.to?"ผู้เบิก "+esc(memName(o.to)):"ใช้ในแก๊ง")}${o.note?" · "+esc(o.note):""}</span><span style="flex:1"></span>${S.canWrite&&!String(o.id).startsWith("tmp")?(conf?`<button class="btn sm danger" data-pook="${o.id}">ยืนยันยกเลิก</button><button class="btn sm ghost" data-pocan>ไม่</button>`:`<button class="btn sm ghost" data-poask="${o.id}">ยกเลิก</button>`):""}</div>`}).join(""):`<div class="empty">ยังไม่มีรายการเข้า-ออกกองกลาง</div>`;
+  document.querySelectorAll("[data-poask]").forEach(b=>b.onclick=()=>{S.poDel=b.dataset.poask;renderPool()});
+  document.querySelectorAll("[data-pocan]").forEach(b=>b.onclick=()=>{S.poDel=null;renderPool()});
+  document.querySelectorAll("[data-pook]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await S.db.collection("poolout").doc(b.dataset.pook).delete();S.poDel=null;toast("ยกเลิกรายการแล้ว")}catch(e){writeErr(e)}})}
+function toggleAtt(mid,k){if(!S.db){toast("ยังเชื่อมต่อฐานข้อมูลไม่ได้");return}
+  const id=`${S.day}_${mid}`,val=!isOn(mid,k),day=S.day;
+  // optimistic
+  const cur=S.att[mid]||{date:day,member:mid,s:{}};S.att[mid]={...cur,s:{...cur.s,[k]:val}};renderCheckin();
+  const L=(S.loot[k]||{}).items;if(L&&L.length)writePool(`${day}_${k}`,L,slotCount(k));
+  chains[id]=(chains[id]||Promise.resolve()).then(()=>S.db.collection("att").doc(id).set({date:day,member:mid,s:{[k]:val}},{merge:true})).catch(writeErr)}
+function writeErr(e){console.error(e);if(e&&e.code==="permission-denied"){status("ฐานข้อมูลไม่ยอมให้บันทึก ตรวจกฎ Firestore ตามขั้นตอนใน README",true)}else if(e&&e.code==="resource-exhausted")toast("ใช้โควตาฟรีของวันนี้หมดแล้ว ลองใหม่พรุ่งนี้");else toast("บันทึกไม่สำเร็จ ลองอีกครั้ง")}
+
+/* ---------- shop ---------- */
+function renderShopForm(){$("#shopPick").innerHTML=SHOPS.map(s=>`<button class="shopbtn" style="--c:${s.c}" data-shop="${s.k}" aria-pressed="${S.shopSel===s.k}"><span class="dot"></span>${s.n}</button>`).join("");
+  document.querySelectorAll("[data-shop]").forEach(b=>b.onclick=()=>{S.shopSel=b.dataset.shop;renderShopForm()});
+  const full=S.shopMem.length>=5;
+  $("#shopMembers").innerHTML=MEMBERS.map(m=>{const on=S.shopMem.includes(m.id);return `<button class="mem" data-sm="${m.id}" aria-pressed="${on}" ${(!on&&full)?"disabled":""}><span class="no">#${m.no}</span><span class="nm">${esc(m.name)}</span><span class="ck">${on?"✓":""}</span></button>`}).join("");
+  document.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{const id=b.dataset.sm;S.shopMem=S.shopMem.includes(id)?S.shopMem.filter(x=>x!==id):[...S.shopMem,id].slice(0,5);renderShopForm()});
+  $("#pickCount").textContent=`(${S.shopMem.length}/5)`;
+  if(!S.shopMem.includes(S.shopKeeper))S.shopKeeper=S.shopMem[0]||null;
+  $("#keeperPick").innerHTML=S.shopMem.length?S.shopMem.map(id=>`<button class="shopbtn" style="--c:var(--warn)" data-kp="${id}" aria-pressed="${S.shopKeeper===id}"><span class="dot"></span>${esc(memName(id))}</button>`).join(""):`<span class="count">เลือกคนเล่นก่อน แล้วเลือกว่าใครเก็บกล่อง</span>`;
+  document.querySelectorAll("[data-kp]").forEach(b=>b.onclick=()=>{S.shopKeeper=b.dataset.kp;renderShopForm()});
+  const n=S.shopMem.length;
+  $("#splitPreview").innerHTML=n&&S.shopSel?`${shopOf(S.shopSel).n} · 1 กล่อง ÷ ${n} คน = คนละ <b>${(1/n).toFixed(2)}</b> แต้ม`:"เลือกร้านและคนเล่นก่อน";
+  $("#saveShop").disabled=!(n&&S.shopSel&&$("#shopTime").value&&S.canWrite&&S.db);
+  $("#saveShop").textContent=S.editId?"บันทึกการแก้ไข":"บันทึกรอบนี้";$("#clearShop").textContent=S.editId?"ยกเลิกแก้ไข":"ล้าง";
+  const eb=$("#editBanner");eb.hidden=!S.editId;if(S.editId){const r=S.shops.find(x=>x.id===S.editId);eb.textContent=r?`กำลังแก้ไขรอบ ${shopOf(r.shop).n} ${r.time} · แก้แล้วกด "บันทึกการแก้ไข"`:"กำลังแก้ไขรอบร้าน"}}
+$("#shopTime").addEventListener("input",renderShopForm);
+$("#clearShop").onclick=()=>{S.editId=null;S.shopSel=null;S.shopMem=[];$("#shopTime").value=bkkNow().time;renderShopForm()};
+function editRound(id){const r=S.shops.find(x=>x.id===id);if(!r)return;S.editId=id;S.shopSel=r.shop;S.shopMem=[...r.members];S.shopKeeper=r.keeper||r.members[0];$("#shopTime").value=r.time;S.confirmDel=null;renderShopForm();renderRounds();$("#shopPick").closest(".panel").scrollIntoView?.({behavior:"smooth",block:"start"})}
+$("#saveShop").onclick=async()=>{const b=$("#saveShop");b.disabled=true;
+  try{const base={time:$("#shopTime").value,shop:S.shopSel,members:[...S.shopMem],keeper:S.shopKeeper};let rec,msg;
+    if(S.editId){const old=S.shops.find(x=>x.id===S.editId)||{};rec={...old,...base,editedAt:new Date().toISOString()};delete rec.id;await S.db.collection("shops").doc(S.editId).update({...base,editedAt:rec.editedAt});msg=`แก้ไข ${shopOf(rec.shop).n} ${rec.time} แล้ว`}
+    else{rec={date:S.day,...base,at:new Date().toISOString()};await S.db.collection("shops").add(rec);msg=`บันทึก ${shopOf(rec.shop).n} ${rec.time} แล้ว`}
+    share(msg,(S.editId?"✏️ **แก้ไขรอบร้าน**\n":"")+roundText(rec));S.editId=null;S.shopSel=null;S.shopMem=[];$("#shopTime").value=bkkNow().time;renderShopForm();renderRounds()}catch(e){writeErr(e);renderShopForm()}};
+function renderRounds(){const list=S.shops.filter(r=>r.date===S.day).sort((a,b)=>a.time.localeCompare(b.time));
+  $("#roundCount").textContent=list.length?`${list.length} รอบ · ${thDate(S.day)}`:thDate(S.day);
+  if(!list.length){$("#rounds").innerHTML=`<div class="empty">ยังไม่มีรอบร้านในวันนี้ บันทึกรอบแรกได้จากฟอร์มด้านบน</div>`;return}
+  $("#rounds").innerHTML=list.map(r=>{const s=shopOf(r.shop),n=r.members.length;const conf=S.confirmDel===r.id;
+    return `<div class="round" style="--c:${s.c}"><span class="t">${esc(r.time)}</span><div class="body"><div class="row"><span class="dot"></span><b>${s.n}</b><span class="pts">${n} คน · คนละ ${(1/n).toFixed(2)} แต้ม</span></div><div class="who">${r.members.map(id=>`<span class="chip">${esc(memName(id))}</span>`).join("")}</div>
+    <label class="row keep" style="margin-top:6px;gap:6px"><span class="pts">คนเก็บกล่อง</span><select data-keep="${r.id}" ${S.canWrite?"":"disabled"}><option value="">— ไม่ระบุ —</option>${r.members.map(id=>`<option value="${id}" ${r.keeper===id?"selected":""}>${esc(memName(id))}</option>`).join("")}</select></label></div>
+    <button class="btn sm ghost" data-copyr="${r.id}">คัดลอก</button>${S.canWrite&&!conf?`<button class="btn sm ghost" data-edit="${r.id}">${S.editId===r.id?"กำลังแก้ไข":"แก้ไข"}</button>`:""}${S.canWrite?(conf?`<div class="row"><button class="btn sm danger" data-del="${r.id}">ยืนยันลบ</button><button class="btn sm ghost" data-cancel>ยกเลิก</button></div>`:`<button class="btn sm ghost" data-ask="${r.id}">ลบ</button>`):""}</div>`}).join("");
+  document.querySelectorAll("[data-keep]").forEach(el=>el.onchange=async()=>{try{await S.db.collection("shops").doc(el.dataset.keep).update({keeper:el.value||null});toast("เปลี่ยนคนเก็บกล่องแล้ว")}catch(e){writeErr(e)}});
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editRound(b.dataset.edit));
+  document.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{S.confirmDel=b.dataset.ask;renderRounds()});
+  document.querySelectorAll("#rounds [data-cancel]").forEach(b=>b.onclick=()=>{S.confirmDel=null;renderRounds()});
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await S.db.collection("shops").doc(b.dataset.del).delete();S.confirmDel=null;toast("ลบรอบร้านแล้ว")}catch(e){writeErr(e)}})}
+
+/* ---------- points ---------- */
+function ledger(){const L={};MEMBERS.forEach(m=>L[m.id]={earned:0,claimed:0,rounds:0});
+  for(const r of S.shops){const n=r.members.length;if(!n)continue;for(const id of r.members)if(L[id]){L[id].earned+=U/n;L[id].rounds++}}
+  for(const c of S.claims)if(L[c.member])L[c.member].claimed+=c.boxes||0;
+  for(const id in L){const x=L[id];x.bal=Math.round(x.earned)-x.claimed*U;x.can=Math.max(0,Math.floor(x.bal/U))}return L}
+function renderPoints(){const L=ledger();
+  const rows=[...MEMBERS].sort((a,b)=>L[b.id].bal-L[a.id].bal||a.no-b.no);
+  $("#ptsList").innerHTML=rows.map(m=>{const x=L[m.id];const frac=((x.bal%U)+U)%U;const open=S.claimOpen===m.id;
+    return `<div class="prow"><span class="no">#${m.no}</span><div style="min-width:0"><div class="nm">${esc(m.name)}</div>
+      <div class="meta">คงเหลือ ${fmtPts(x.bal)} แต้ม · ได้ทั้งหมด ${fmtPts(Math.round(x.earned))} จาก ${x.rounds} รอบ · เบิกแล้ว ${x.claimed} กล่อง</div>
+      <div class="bar" title="ความคืบหน้าสู่กล่องถัดไป"><i style="width:${(frac/U*100).toFixed(1)}%"></i></div></div>
+      <div class="boxes"><div class="bx ${x.can?"has":""}"><b>${x.can}</b><small>กล่องเบิกได้</small></div>${S.canWrite&&x.can&&!open?`<button class="btn sm" data-claim="${m.id}">เบิก</button>`:""}</div>
+      ${open?`<div class="claimbox"><span>เบิกกี่กล่อง</span><div class="step"><button data-dec aria-label="ลด">−</button><span>${S.claimN}</span><button data-inc aria-label="เพิ่ม">+</button></div><label class="row" style="gap:6px"><span>รับกล่องจาก</span><select id="claimFrom">${keeperOptions()}</select></label><button class="btn sm" data-doclaim="${m.id}">ยืนยันเบิก ${S.claimN} กล่อง</button><button class="btn sm ghost" data-cclose>ยกเลิก</button></div>`:""}</div>`}).join("");
+  document.querySelectorAll("[data-claim]").forEach(b=>b.onclick=()=>{S.claimOpen=b.dataset.claim;S.claimN=1;renderPoints()});
+  document.querySelectorAll("[data-cclose]").forEach(b=>b.onclick=()=>{S.claimOpen=null;renderPoints()});
+  const mx=S.claimOpen?L[S.claimOpen].can:1;
+  document.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>{S.claimN=Math.max(1,S.claimN-1);renderPoints()});
+  document.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>{S.claimN=Math.min(mx,S.claimN+1);renderPoints()});
+  document.querySelectorAll("[data-doclaim]").forEach(b=>b.onclick=async()=>{b.disabled=true;const id=b.dataset.doclaim,n=Math.min(S.claimN,ledger()[id].can);if(n<1)return;
+    const now=bkkNow();const from=($("#claimFrom")||{}).value||null;S.claimFrom=from;const balAfter=ledger()[id].bal-n*U;try{await S.db.collection("claims").add({member:id,boxes:n,from,date:now.date,time:now.time,at:new Date().toISOString()});S.claimOpen=null;share(`${memName(id)} เบิก ${n} กล่องแล้ว`,`🎁 **เบิกกล่อง** · ${thDate(now.date)} ${now.time}\n👤 ${memName(id)} เบิก **${n}** กล่อง${from?`\n📦 รับจาก: ${memName(from)}`:""}\n⭐ แต้มคงเหลือ ${fmtPts(balAfter)}`)}catch(e){writeErr(e)}});
+  const hist=[...S.claims].sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+  $("#claimHist").innerHTML=hist.length?hist.map(c=>{const conf=S.confirmClaimDel===c.id;return `<div><span class="when">${thDate(c.date)} ${esc(c.time||"")}</span><b>${esc(memName(c.member))}</b><span>เบิก ${c.boxes} กล่อง</span><span class="count">${c.from?"รับจาก "+esc(memName(c.from)):"ไม่ระบุคนส่งกล่อง"}</span><span style="flex:1"></span>${S.canWrite?(conf?`<button class="btn sm danger" data-cdel="${c.id}">ยืนยันยกเลิกการเบิก</button><button class="btn sm ghost" data-ccan>ไม่</button>`:`<button class="btn sm ghost" data-cask="${c.id}">ยกเลิก</button>`):""}</div>`}).join(""):`<div class="empty">ยังไม่มีใครเบิกกล่อง</div>`;
+  $("#claimCount").textContent=hist.length?`${hist.length} ครั้ง · ${hist.reduce((a,c)=>a+(c.boxes||0),0)} กล่อง`:"";
+  renderKeepers();renderHistory();renderPool();
+  document.querySelectorAll("[data-cask]").forEach(b=>b.onclick=()=>{S.confirmClaimDel=b.dataset.cask;renderPoints()});
+  document.querySelectorAll("[data-ccan]").forEach(b=>b.onclick=()=>{S.confirmClaimDel=null;renderPoints()});
+  document.querySelectorAll("[data-cdel]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await S.db.collection("claims").doc(b.dataset.cdel).delete();S.confirmClaimDel=null;toast("ยกเลิกการเบิกแล้ว")}catch(e){writeErr(e)}})}
+
+function keepers(){const K={};MEMBERS.forEach(m=>K[m.id]={got:0,out:0});let none=0;
+  for(const r of S.shops){if(r.keeper&&K[r.keeper])K[r.keeper].got++;else none++}
+  for(const c of S.claims)if(c.from&&K[c.from])K[c.from].out+=c.boxes||0;
+  for(const id in K)K[id].hold=K[id].got-K[id].out;return{K,none}}
+function keeperOptions(){const {K}=keepers();const list=MEMBERS.filter(m=>K[m.id].hold>0).sort((a,b)=>K[b.id].hold-K[a.id].hold);
+  const def=S.claimFrom&&K[S.claimFrom]&&K[S.claimFrom].hold>0?S.claimFrom:(list[0]||{}).id;
+  return list.map(m=>`<option value="${m.id}" ${m.id===def?"selected":""}>${esc(m.name)} (ถืออยู่ ${K[m.id].hold})</option>`).join("")+`<option value="" ${def?"":"selected"}>— ไม่ระบุ —</option>`}
+function renderKeepers(){const {K,none}=keepers();const rows=MEMBERS.filter(m=>K[m.id].got||K[m.id].out).sort((a,b)=>K[b.id].hold-K[a.id].hold);
+  $("#keeperTable").innerHTML=rows.length?`<thead><tr><th class="name">คนเก็บกล่อง</th><th>เก็บได้</th><th>ส่งให้คนเบิก</th><th>ถืออยู่ตอนนี้</th></tr></thead><tbody>${rows.map(m=>{const k=K[m.id];return `<tr><td class="name">${esc(m.name)}</td><td>${k.got}</td><td>${k.out}</td><td class="tot" style="color:${k.hold<0?"var(--bad)":k.hold?"var(--good)":"inherit"}">${k.hold}</td></tr>`}).join("")}${none?`<tr><td class="name" style="color:var(--muted)">รอบที่ไม่ระบุคนเก็บ</td><td>${none}</td><td></td><td></td></tr>`:""}</tbody>`
+    :`<tbody><tr><td style="color:var(--muted);padding:14px">ยังไม่มีข้อมูล เลือก "คนเก็บกล่อง" ตอนบันทึกรอบร้าน</td></tr></tbody>`}
+
+/* ---------- summary ---------- */
+function renderSummary(){document.querySelectorAll("#rangeSeg button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.r===S.range));
+  const to=S.day,from=S.range===1?S.day:addDays(S.day,-(S.range-1));
+  $("#rangeHint").textContent=`${thDate(from)} – ${thDate(to)} · เรียงตามจำนวนกิจกรรมรวม`;
+  const R={};MEMBERS.forEach(m=>R[m.id]={a:0,m:0,s:0,p:0,days:new Set()});
+  for(const d of Object.values(S.attRange)){if(d.date<from||d.date>to||!R[d.member])continue;for(const [k,v] of Object.entries(d.s||{}))if(v){if(k[0]==="a")R[d.member].a++;else R[d.member].m++;R[d.member].days.add(d.date)}}
+  for(const r of S.shops){if(r.date<from||r.date>to)continue;const n=r.members.length;for(const id of r.members)if(R[id]){R[id].s++;R[id].p+=U/n;R[id].days.add(r.date)}}
+  const rows=[...MEMBERS].map(m=>({m,...R[m.id],tot:R[m.id].a+R[m.id].m+R[m.id].s})).sort((x,y)=>y.tot-x.tot||x.m.no-y.m.no);
+  $("#sumTable").innerHTML=`<thead><tr><th>อันดับ</th><th class="name">สมาชิก</th><th class="air">Airdrop</th><th>Mini</th><th>ร้าน</th><th>แต้มร้าน</th><th>วันที่ออนไลน์</th><th>รวม</th></tr></thead><tbody>`+
+    rows.map((r,i)=>`<tr><td class="rank">${r.tot?i+1:"–"}</td><td class="name"><button class="mlink" data-hist="${r.m.id}">${esc(r.m.name)}</button></td><td>${r.a}</td><td>${r.m}</td><td>${r.s}</td><td>${fmtPts(Math.round(r.p))}</td><td>${r.days.size}</td><td class="tot">${r.tot}</td></tr>`).join("")+`</tbody>`;renderHistory()}
+document.querySelectorAll("#rangeSeg button").forEach(b=>b.onclick=()=>{S.range=+b.dataset.r;renderSummary()});
+$("#sumTable").addEventListener("click",e=>{const b=e.target.closest("[data-hist]");if(!b)return;S.hMember=b.dataset.hist;showTab("history");try{history.replaceState(null,"","#history")}catch(_){}renderHistory();window.scrollTo(0,0)});
+
+/* ---------- member history ---------- */
+function memberDays(mid){const from=addDays(S.day,-29),D={};const get=d=>D[d]||(D[d]={a:[],m:[],shops:[],loot:{}});
+  for(const doc of Object.values(S.attRange)){if(doc.member!==mid||doc.date<from||doc.date>S.day)continue;
+    for(const [k,v] of Object.entries(doc.s||{}))if(v){const s=SLOTS.find(x=>x.k===k);if(!s)continue;get(doc.date)[s.type].push(s.t);
+      const L=S.lootRange[doc.date+"_"+k];if(L&&(L.items||[]).length){const n=MEMBERS.filter(m=>{const ad=S.attRange[doc.date+"_"+m.id];return ad&&ad.s&&ad.s[k]}).length||1;
+        for(const it of L.items){const nm=itemName(it);get(doc.date).loot[nm]=(get(doc.date).loot[nm]||0)+split(it.qty,n).each}}}}
+  for(const r of S.shops){if(r.date<from||r.date>S.day||!r.members.includes(mid))continue;get(r.date).shops.push(r)}
+  for(const d of Object.values(D)){d.a.sort();d.m.sort();d.shops.sort((x,y)=>x.time.localeCompare(y.time))}
+  return D}
+function renderHistory(){const from=addDays(S.day,-29);$("#histHint").textContent=`นับ 30 วัน: ${thDate(from)} – ${thDate(S.day)} · ตัวเลข = จำนวนกิจกรรม`;
+  const tot={};for(const m of MEMBERS){const D=memberDays(m.id);tot[m.id]={D,n:Object.values(D).reduce((a,d)=>a+d.a.length+d.m.length+d.shops.length,0)}}
+  $("#histList").innerHTML=MEMBERS.map(m=>`<button class="hbtn" data-hm="${m.id}" aria-current="${S.hMember===m.id}"><span class="no">#${m.no}</span><span class="nm">${esc(m.name)}</span><span class="n">${tot[m.id].n}</span></button>`).join("");
+  document.querySelectorAll("[data-hm]").forEach(b=>b.onclick=()=>{S.hMember=b.dataset.hm;renderHistory();if(innerWidth<=760)$("#histDetail").scrollIntoView({block:"start"})});
+  const m=MEMBERS.find(x=>x.id===S.hMember)||MEMBERS[0],D=tot[m.id].D,L=ledger()[m.id],K=keepers().K[m.id];
+  const days=Object.keys(D).sort().reverse();
+  const cnt=f=>days.reduce((a,d)=>a+f(D[d]),0);
+  const myClaims=S.claims.filter(c=>c.member===m.id).sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+  $("#histDetail").innerHTML=`<h2>#${m.no} ${esc(m.name)}</h2>
+    <div class="stats">
+      <div class="stat"><b>${days.length}</b><span>วันที่ออนไลน์ (30 วัน)</span></div>
+      <div class="stat"><b>${cnt(d=>d.a.length)}</b><span>Airdrop</span></div>
+      <div class="stat"><b>${cnt(d=>d.m.length)}</b><span>Mini Supply</span></div>
+      <div class="stat"><b>${cnt(d=>d.shops.length)}</b><span>งัดร้าน</span></div>
+      <div class="stat"><b>${fmtPts(L.bal)}</b><span>แต้มคงเหลือ · เบิกได้ ${L.can} กล่อง</span></div>
+      <div class="stat"><b>${K.hold}</b><span>กล่องที่ถืออยู่</span></div>
+    </div>
+    <div class="days">${days.length?days.map(dk=>{const d=D[dk];const loot=Object.entries(d.loot);
+      return `<div class="day"><div class="d">${thDate(dk)}<small>${d.a.length+d.m.length+d.shops.length} กิจกรรม</small></div><div class="acts">
+        ${d.a.length||d.m.length?`<div class="tchips">${d.a.map(t=>`<span class="tc a">Airdrop ${t}</span>`).join("")}${d.m.map(t=>`<span class="tc">Mini ${t}</span>`).join("")}</div>`:""}
+        ${d.shops.map(r=>{const s=shopOf(r.shop);return `<div class="sline"><span class="dot" style="--c:${s.c}"></span><b>${s.n}</b> ${esc(r.time)} · ${r.members.length} คน · ได้ ${(1/r.members.length).toFixed(2)} แต้ม${r.keeper===m.id?' · <span style="color:var(--warn)">เป็นคนเก็บกล่อง</span>':""}</div>`}).join("")}
+        ${loot.length?`<div class="lline">ของที่ได้ส่วนแบ่ง: ${loot.map(([n,q])=>`${esc(n)} <b>${fmtQ(q)}</b>`).join(" · ")}</div>`:""}
+      </div></div>`}).join(""):`<div class="empty">ไม่มีกิจกรรมใน 30 วันที่ผ่านมา</div>`}</div>
+    <h2 style="margin-top:18px">การเบิกกล่อง</h2>
+    <div class="hist">${myClaims.length?myClaims.map(c=>`<div><span class="when">${thDate(c.date)} ${esc(c.time||"")}</span><span>เบิก ${c.boxes} กล่อง</span><span class="count">${c.from?"รับจาก "+esc(memName(c.from)):"ไม่ระบุคนส่งกล่อง"}</span></div>`).join(""):`<div class="empty">ยังไม่เคยเบิกกล่อง</div>`}</div>`}
+
+/* ---------- Discord copy ---------- */
+const SE={green:"🟢",orange:"🟠",pink:"🩷",red:"🔴",purple:"🟣",yellow:"🟡",blue:"🩵",navy:"🔵"};
+const slotWho=k=>MEMBERS.filter(m=>isOn(m.id,k));
+const SEP="───────────── ✦ ─────────────";
+const quote=lines=>lines.map(l=>"> "+l).join("\n");
+const stamp=()=>`-# บันทึกผ่านเว็บเช็คชื่อ Raiwa • ${thDate(bkkNow().date)} ${bkkNow().time}`;
+function poolLines(){const P=poolItems(),boxes=poolBoxes(),{K}=keepers();const hold=MEMBERS.filter(m=>K[m.id].hold>0).map(m=>`${m.name} ${K[m.id].hold}`);
+  return ["🏦 **ของในกองกลางตอนนี้**",`📦 กล่องจากร้าน: **${boxes}** กล่อง${hold.length?` (อยู่กับ ${hold.join(", ")})`:""}`,...(P.length?P.map(x=>`🎁 ${x.name}: **${fmtQ(x.qty)}**`):["🎁 ของ: ยังไม่มี"])]}
+function slotText(k){const s=SLOTS.find(x=>x.k===k),who=slotWho(k),n=who.length,L=(S.loot[k]||{}).items||[];
+  const lines=[`## 🎁 ของเข้าแก๊ง!! | 🏷️ ${s.type==="a"?"Airdrop":"Mini Supply"} ${s.t}`,SEP,`📅 ${thDate(S.day)}`,`👥 **คนเล่น (${n}):** ${n?who.map(m=>m.name).join(", "):"-"}`,"",
+    `**ของที่ได้${n?` · หาร ${n} คน`:""}**`,...(L.length?L.map(r=>{const {each,rem}=split(r.qty,n);return `• ${itemName(r)} × ${fmtQ(r.qty)}${n?` → คนละ **${fmtQ(each)}**`:""}${rem?` · เศษ ${fmtQ(rem)} เข้ากองกลาง`:""}`}):["• ยังไม่ได้บันทึกของ"]),
+    SEP,...poolLines(),"",stamp()];
+  return quote(lines)}
+function poolText(){return quote([`## 🏦 กองกลางแก๊ง Raiwa`,SEP,...poolLines().slice(1),"",stamp()])}
+function roundText(r){const s=shopOf(r.shop),n=r.members.length;
+  return `${SE[r.shop]||"🏪"} **${s.n} ${r.time}** · ${thDate(r.date)}\n👥 ${r.members.map(memName).join(", ")} (${n} คน)\n⭐ คนละ ${(1/n).toFixed(2)} แต้ม${r.keeper?`\n📦 คนเก็บกล่อง: ${memName(r.keeper)}`:""}\n🏦 กล่องในกองกลางตอนนี้: ${poolBoxes()+(S.shops.some(x=>x.at&&x.at===r.at)?0:(S.editId?0:1))} กล่อง`}
+function shopsText(){const list=S.shops.filter(r=>r.date===S.day).sort((a,b)=>a.time.localeCompare(b.time));
+  if(!list.length)return `🏪 **รอบร้าน · ${thDate(S.day)}**\nยังไม่มีรอบร้าน`;
+  return `🏪 **รอบร้าน · ${thDate(S.day)}** (${list.length} รอบ)\n`+list.map(r=>`${SE[r.shop]||"🏪"} ${r.time} ${shopOf(r.shop).n} — ${r.members.map(memName).join(", ")} · คนละ ${(1/r.members.length).toFixed(2)}${r.keeper?` · เก็บกล่อง: ${memName(r.keeper)}`:""}`).join("\n")}
+function dayText(){const slots=[...SLOTS].sort((a,b)=>a.t.localeCompare(b.t)).filter(s=>slotWho(s.k).length||((S.loot[s.k]||{}).items||[]).length);
+  let t=`📋 **สรุปแก๊ง Raiwa · ${thDate(S.day)}**\n`;
+  t+=slots.length?slots.map(s=>{const n=slotWho(s.k).length,L=(S.loot[s.k]||{}).items||[];
+    return `${s.type==="a"?"✈️ Airdrop":"📦 Mini"} ${s.t} — ${n} คน${L.length?`\n   🎁 `+L.map(r=>`${itemName(r)} ${fmtQ(r.qty)}${n?` (คนละ ${split(r.qty,n).each}${split(r.qty,n).rem?`, เศษ ${split(r.qty,n).rem} เข้ากองกลาง`:""})`:""}`).join(", "):""}`}).join("\n"):"ยังไม่มีการเช็คชื่อ Airdrop / Mini";
+  const list=S.shops.filter(r=>r.date===S.day);if(list.length)t+="\n\n"+shopsText();
+  const act=MEMBERS.map(m=>({m,n:SLOTS.filter(s=>isOn(m.id,s.k)).length+list.filter(r=>r.members.includes(m.id)).length})).filter(x=>x.n).sort((a,b)=>b.n-a.n);
+  if(act.length)t+=`\n\n🔥 **Active วันนี้**\n`+act.map((x,i)=>`${i+1}. ${x.m.name} — ${x.n} กิจกรรม`).join("\n");
+  return t}
+function ptsText(){const L=ledger(),{K}=keepers();const rows=MEMBERS.filter(m=>L[m.id].earned||L[m.id].claimed).sort((a,b)=>L[b.id].bal-L[a.id].bal);
+  let t=`🏆 **แต้มสะสมแก๊ง Raiwa** · ${thDate(bkkNow().date)}\n`;
+  t+=rows.length?rows.map(m=>{const x=L[m.id];return `• ${m.name} — ${fmtPts(x.bal)} แต้ม${x.can?` · เบิกได้ **${x.can}** กล่อง`:""}`}).join("\n"):"ยังไม่มีแต้ม";
+  const hold=MEMBERS.filter(m=>K[m.id].hold>0);if(hold.length)t+=`\n\n📦 **กล่องอยู่กับ:** `+hold.map(m=>`${m.name} ${K[m.id].hold}`).join(", ");
+  return t}
+function copyOut(text,quiet){if(text.length>2000)toast(`ข้อความยาว ${text.length} ตัวอักษร Discord รับได้ 2000 อาจต้องแบ่งวาง`);
+  const show=()=>{$("#shareBar").hidden=true;$("#copyText").value=text;$("#copyLen").textContent=`${text.length} ตัวอักษร`;$("#copyBox").hidden=false;const ta=$("#copyText");ta.focus();ta.select()};
+  try{navigator.clipboard.writeText(text).then(()=>{if(quiet)return;if(S.dcUrl)share("คัดลอกแล้ว กดเปิดห้องแล้ววางได้เลย",null);else if(text.length<=2000)toast("คัดลอกแล้ว ไปวางใน Discord ได้เลย")},show)}catch(e){show()}}
+function share(msg,text){S.shareText=text;$("#shareMsg").textContent=msg;const go=$("#shareGo"),cp=$("#shareCopy");
+  if(S.dcUrl){go.hidden=false;go.href=S.dcUrl;go.textContent=text?"คัดลอก & เปิด Discord":"เปิดห้อง Discord";cp.hidden=true}else{go.hidden=true;cp.hidden=!text}
+  $("#copyBox").hidden=true;$("#shareBar").hidden=false;clearTimeout(share._t);share._t=setTimeout(()=>$("#shareBar").hidden=true,30000)}
+$("#shareGo").addEventListener("click",()=>{if(S.shareText)copyOut(S.shareText,true);setTimeout(()=>$("#shareBar").hidden=true,300)});
+$("#shareCopy").onclick=()=>{if(S.shareText)copyOut(S.shareText);$("#shareBar").hidden=true};
+$("#shareClose").onclick=()=>$("#shareBar").hidden=true;
+const DC_RE=/^https:\/\/((ptb|canary)\.)?(discord\.com|discordapp\.com|discord\.gg)\/\S+$/;
+function renderDc(){$("#dcNow").textContent=S.dcUrl?"ตั้งค่าแล้ว: "+S.dcUrl:"ยังไม่ได้ตั้งห้อง ตอนนี้ปุ่มจะคัดลอกข้อความอย่างเดียว";if(document.activeElement!==$("#dcUrl"))$("#dcUrl").value=S.dcUrl||"";$("#dcSave").disabled=!S.canWrite}
+$("#dcSave").onclick=async()=>{const v=$("#dcUrl").value.trim();if(v&&!DC_RE.test(v)){toast("ลิงก์ต้องขึ้นต้นด้วย https://discord.com/channels/");return}
+  if(!S.db)return;try{await S.db.doc("config/discord").set({url:v});S.dcUrl=v;renderDc();toast(v?"บันทึกห้อง Discord แล้ว":"ลบลิงก์ห้องแล้ว")}catch(e){writeErr(e)}};
+$("#copySlot").onclick=()=>copyOut(slotText(S.slot));
+$("#copyDay").onclick=()=>copyOut(dayText());
+$("#copyPool").onclick=()=>copyOut(poolText());
+["#poRows","#piRows"].forEach(sel=>{const box=$(sel);
+  box.addEventListener("input",e=>{const t=e.target,k=t.dataset.k;if(!k||t.tagName==="SELECT")return;const i=+t.closest(".mrow").dataset.i,rows=k==="wd"?S.wd:S.dp;
+    if(t.dataset.f==="qty")rows[i].qty=t.value;if(t.dataset.f==="nn")rows[i].nn=t.value});
+  box.addEventListener("change",e=>{const t=e.target,k=t.dataset.k;if(!k||t.dataset.f!=="item")return;const i=+t.closest(".mrow").dataset.i,rows=k==="wd"?S.wd:S.dp;rows[i].item=t.value;renderRows(k,true);
+    if(t.value==="__new"){const nn=box.querySelector(`.mrow[data-i="${i}"] input[type=text]`);if(nn)nn.focus()}});
+  box.addEventListener("click",e=>{const b=e.target.closest("[data-rm]");if(!b)return;const k=b.dataset.k,rows=k==="wd"?S.wd:S.dp;rows.splice(+b.dataset.rm,1);renderRows(k,true)})});
+$("#poAdd").onclick=()=>{S.wd.push({item:"",qty:1});renderRows("wd",true)};
+$("#piAdd").onclick=()=>{S.dp.push({item:"",qty:1,nn:""});renderRows("dp",true)};
+function addPoolRec(rec){if(!(S.poolOut||[]).some(o=>o.at===rec.at))S.poolOut=[...(S.poolOut||[]),{...rec,id:"tmp"+Date.now()}]}
+$("#poGo").onclick=async()=>{const P=poolItems(),need={};
+  for(const r of S.wd){if(!r.item)continue;const q=Math.floor(+r.qty||0);if(q<1){toast("ใส่จำนวนอย่างน้อย 1 ทุกแถว");return}need[r.item]=(need[r.item]||0)+q}
+  const ids=Object.keys(need);if(!ids.length){toast("เลือกของที่จะเบิกอย่างน้อย 1 อย่าง");return}
+  for(const id of ids){const it=P.find(x=>x.id===id);if(!it||need[id]>it.qty){toast(`ในกองกลางมี ${it?it.name:"ของนี้"} แค่ ${fmtQ(it?it.qty:0)}`);return}}
+  const to=$("#poTo").value||null,note=$("#poNote").value.trim(),now=bkkNow();
+  const items=ids.map(id=>({item:id,name:P.find(x=>x.id===id).name,qty:need[id]}));
+  const rec={type:"out",items,to,note,date:now.date,time:now.time,at:new Date().toISOString()};$("#poGo").disabled=true;
+  try{await S.db.collection("poolout").add(rec);addPoolRec(rec);S.wd=[{item:"",qty:1}];$("#poNote").value="";renderRows("wd",true);renderPool();
+    share(`เบิกของ ${items.length} อย่างแล้ว`,quote([`## 📤 เบิกของกองกลาง`,SEP,`👤 ผู้เบิก: **${to?memName(to):"ใช้ในแก๊ง"}**`,...items.map(e=>`🎁 ${e.name} × **${fmtQ(e.qty)}**`),...(note?[`📝 ${note}`]:[]),SEP,...poolLines(),"",stamp()]))}catch(e){writeErr(e)}renderPool()};
+$("#piGo").onclick=async()=>{const rows=S.dp.filter(r=>r.item);if(!rows.length){toast("เลือกของอย่างน้อย 1 อย่าง");return}
+  for(const r of rows){if(Math.floor(+r.qty||0)<1){toast("ใส่จำนวนอย่างน้อย 1 ทุกแถว");return}if(r.item==="__new"&&!(r.nn||"").trim()){toast("พิมพ์ชื่อของใหม่");return}}
+  $("#piGo").disabled=true;const add={};
+  try{for(const r of rows){let id=r.item;if(id==="__new"){id=await addItem(r.nn.trim(),true);if(!id){renderPool();return}}add[id]=(add[id]||0)+Math.floor(+r.qty)}
+    const items=Object.keys(add).map(id=>({item:id,name:itemName({item:id}),qty:add[id]}));
+    const src=$("#piSrc").value,note=$("#piNote").value.trim(),now=bkkNow();
+    const rec={type:"in",items,src,note,date:now.date,time:now.time,at:new Date().toISOString()};
+    await S.db.collection("poolout").add(rec);addPoolRec(rec);S.dp=[{item:"",qty:1,nn:""}];$("#piNote").value="";renderRows("dp",true);renderPool();
+    share(`เพิ่มของ ${items.length} อย่างเข้ากองกลางแล้ว`,quote([`## 📥 เพิ่มของเข้ากองกลาง`,SEP,`📍 ได้มาจาก: ${src}`,...items.map(e=>`🎁 ${e.name} × **${fmtQ(e.qty)}**`),...(note?[`📝 ${note}`]:[]),SEP,...poolLines(),"",stamp()]))}catch(e){writeErr(e)}renderPool()};
+$("#copyShops").onclick=()=>copyOut(shopsText());
+$("#copyPts").onclick=()=>copyOut(ptsText());
+$("#rounds").addEventListener("click",e=>{const b=e.target.closest("[data-copyr]");if(!b)return;const r=S.shops.find(x=>x.id===b.dataset.copyr);if(r)copyOut(roundText(r))});
+$("#copyClose").onclick=()=>$("#copyBox").hidden=true;
+$("#copyAgain").onclick=()=>{const ta=$("#copyText");ta.select();try{navigator.clipboard.writeText(ta.value).then(()=>toast("คัดลอกแล้ว"),()=>toast("กดค้างที่ข้อความแล้วเลือกคัดลอก"))}catch(e){}};
+
+/* ---------- random pick ---------- */
+const RAND={mini:{label:"Mini Supply",icon:"📦",opts:[{k:"orange",n:"ส้ม"},{k:"purple",n:"ม่วง"},{k:"green",n:"เขียว"},{k:"blue",n:"ฟ้า"}]},
+  air:{label:"Airdrop",icon:"✈️",opts:[{k:"yellow",n:"เหลือง"},{k:"red",n:"แดง"},{k:"navy",n:"น้ำเงิน"}]}};
+const RS={mini:{off:new Set(),last:null,hist:[],busy:false},air:{off:new Set(),last:null,hist:[],busy:false}};
+const rcol=k=>`var(--s-${k})`;
+function rint(n){try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}catch(e){return Math.floor(Math.random()*n)}}
+function renderRandom(kind){const R=RAND[kind],st=RS[kind];
+  const ch=document.querySelector(`[data-chips="${kind}"]`);
+  ch.innerHTML=R.opts.map(o=>`<button class="rchip" style="--c:${rcol(o.k)}" data-rk="${o.k}" aria-pressed="${!st.off.has(o.k)}"><span class="dot"></span>${o.n}</button>`).join("");
+  ch.querySelectorAll("[data-rk]").forEach(b=>b.onclick=()=>{const k=b.dataset.rk;if(st.off.has(k))st.off.delete(k);else{if(R.opts.length-st.off.size<=1){toast("ต้องเหลืออย่างน้อย 1 สี");return}st.off.add(k)}renderRandom(kind)});
+  const left=R.opts.filter(o=>!st.off.has(o.k)).length;
+  const rb=document.querySelector(`[data-roll="${kind}"]`);rb.disabled=st.busy;rb.textContent=st.busy?"กำลังสุ่ม…":`สุ่ม ${R.label}${st.off.size?` (${left} สี)`:""}`;
+  document.querySelector(`[data-rcopy="${kind}"]`).hidden=!st.last||st.busy;
+  document.querySelector(`[data-hist="${kind}"]`).innerHTML=st.hist.length?`<span>ล่าสุด:</span>`+st.hist.map(h=>`<span class="tc" style="--c:${rcol(h.k)}"><span class="dot"></span>${h.n} ${h.t}</span>`).join(""):""}
+function showPick(kind,o,final){const el=document.querySelector(`[data-result="${kind}"]`);el.style.setProperty("--c",rcol(o.k));el.classList.add("on");el.classList.toggle("spin",!final);el.classList.toggle("done",!!final);
+  el.innerHTML=`<div><div class="rball"></div><div class="rname">ลูก${o.n}</div></div>`}
+function roll(kind){const R=RAND[kind],st=RS[kind];if(st.busy)return;const pool=R.opts.filter(o=>!st.off.has(o.k));if(!pool.length)return;
+  const pick=pool[rint(pool.length)];st.busy=true;renderRandom(kind);
+  const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finish=()=>{st.busy=false;st.last=pick;st.hist=[{...pick,t:bkkNow().time},...st.hist].slice(0,5);showPick(kind,pick,true);renderRandom(kind)};
+  if(reduce||pool.length===1){finish();return}
+  let i=rint(pool.length),n=0;const steps=14+rint(pool.length);
+  const tick=()=>{showPick(kind,pool[i%pool.length],false);i++;n++;if(n<steps)setTimeout(tick,50+n*12);else finish()};tick()}
+document.querySelectorAll("[data-roll]").forEach(b=>b.onclick=()=>roll(b.dataset.roll));
+document.querySelectorAll("[data-rcopy]").forEach(b=>b.onclick=()=>{const kind=b.dataset.rcopy,R=RAND[kind],st=RS[kind];if(!st.last)return;
+  copyOut(`🎲 **สุ่มลูก ${R.label}** · ${bkkNow().time}\n${R.icon} ไปลูก **${st.last.n}**${st.off.size?`\n(ตัดออก: ${R.opts.filter(o=>st.off.has(o.k)).map(o=>o.n).join(", ")})`:""}`)});
+renderRandom("mini");renderRandom("air");
+
+function renderAll(){renderPool();renderDc();renderCheckin();renderLootDay();renderCatalog();renderShopForm();renderRounds();renderPoints();renderSummary()}
+
+/* ---------- data ---------- */
+let unDay=null,unRange=null,unLoot=null;
+function subDay(){if(!S.db)return;if(unDay)unDay();if(unLoot)unLoot();S.att={};S.loot={};S.draft.dirty=false;
+  unDay=S.db.collection("att").where("date","==",S.day).onSnapshot(snap=>{const a={};snap.docs.forEach(d=>{const x=d.data();a[x.member]=x});S.att=a;renderCheckin();renderLootDay()},subErr);
+  unLoot=S.db.collection("loot").where("date","==",S.day).onSnapshot(snap=>{const l={};snap.docs.forEach(d=>{const x=d.data();if(x.slot)l[x.slot]=x});S.loot=l;renderLootEditor(false);renderLootDay()},subErr)}
+let unLootR=null;
+function subRange(){if(!S.db)return;if(unRange)unRange();if(unLootR)unLootR();const from=addDays(S.day,-29);
+  unLootR=S.db.collection("loot").where("date",">=",from).where("date","<=",S.day).onSnapshot(snap=>{const a={};snap.docs.forEach(d=>a[d.id]=d.data());S.lootRange=a;renderHistory()},subErr);
+  unRange=S.db.collection("att").where("date",">=",from).where("date","<=",S.day).onSnapshot(snap=>{const a={};snap.docs.forEach(d=>a[d.id]=d.data());S.attRange=a;renderSummary()},subErr)}
+function subErr(e){console.error(e);status("การเชื่อมต่อข้อมูลขาดหาย ลองรีเฟรชหน้า",true)}
+
+$("#day").value=S.day;$("#shopTime").value=bkkNow().time;
+$("#day").addEventListener("change",e=>{if(!e.target.value)return;S.day=e.target.value;pickDefaultSlot();S.confirmDel=null;subDay();subRange();renderAll()});
+pickDefaultSlot();renderAll();
+let lastToday=bkkNow().date;
+function rollDay(){const t=bkkNow().date;if(t!==lastToday){const follow=S.day===lastToday;lastToday=t;if(follow){S.day=t;$("#day").value=t;pickDefaultSlot();S.confirmDel=null;subDay();subRange();renderAll();toast("ขึ้นวันใหม่แล้ว เปลี่ยนวันที่เช็คชื่อเป็นวันนี้ให้อัตโนมัติ")}}}
+setInterval(()=>{rollDay();if(document.visibilityState==="visible")renderSlots()},30000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){rollDay();renderSlots()}});
+
+/* ---------- Firebase + รหัสแก๊ง ---------- */
+const CODE_KEY="raiwa-gang-code";
+(()=>{const m=(location.hash||"").match(/^#g=([A-Za-z0-9_-]{6,})$/);if(m){window.__gang=m[1];try{localStorage.setItem(CODE_KEY,m[1])}catch(e){}try{history.replaceState(null,"",location.pathname)}catch(e){location.hash=""}}})();
+function getCode(){try{return localStorage.getItem(CODE_KEY)||window.__gang||""}catch(e){return window.__gang||""}}
+function showGate(msg){$("#gate").hidden=false;$("#gateMsg").textContent=msg||"";$("#gateCode").focus()}
+$("#gateGo").onclick=()=>{const v=$("#gateCode").value.trim();if(v.length<6||!/^[A-Za-z0-9_-]+$/.test(v)){$("#gateMsg").textContent="รหัสต้องเป็นตัวอังกฤษหรือตัวเลข อย่างน้อย 6 ตัว";return}
+  try{localStorage.setItem(CODE_KEY,v)}catch(e){}location.reload()};
+$("#gateCode").onkeydown=e=>{if(e.key==="Enter")$("#gateGo").click()};
+$("#logout").onclick=()=>{try{localStorage.removeItem(CODE_KEY)}catch(e){}location.reload()};
+(()=>{
+  const cfg=window.FIREBASE_CONFIG;
+  if(!window.firebase||!cfg||!cfg.projectId||String(cfg.apiKey).includes("ใส่")){status("ยังไม่ได้ตั้งค่า Firebase ใส่ค่าในไฟล์ firebase-config.js ตามขั้นตอนใน README",true);return}
+  const code=getCode();if(!code){status("ใส่รหัสแก๊งเพื่อเริ่มใช้งาน",false);showGate();return}
+  firebase.initializeApp(cfg);const fs=firebase.firestore();const root=fs.collection("gangs").doc(code);
+  const db={collection:p=>root.collection(p),doc:p=>{const [c,d]=p.split("/");return root.collection(c).doc(d)}};
+  S.db=db;S.fbMode=true;status(null);
+  const probe=Promise.race([db.doc("config/discord").get({source:"server"}),new Promise((_,rej)=>setTimeout(()=>rej({code:"timeout"}),15000))]);
+  probe.catch(e=>{console.error("Firestore check",e);const c=e&&e.code;
+    status(c==="permission-denied"?"เชื่อมต่อได้ แต่บันทึกไม่ได้: ตรวจว่าวางกฎ (Rules) ใน Firestore แล้วกด Publish":
+      c==="timeout"?"ยังติดต่อฐานข้อมูลไม่ได้ ข้อมูลที่กรอกอาจหายเมื่อรีเฟรช: ตรวจอินเทอร์เน็ต และตรวจว่าสร้าง Firestore Database ใน Firebase แล้ว":
+      "ติดต่อฐานข้อมูลไม่ได้ ข้อมูลที่กรอกจะไม่ถูกบันทึก: ตรวจว่าสร้าง Firestore Database (default) ใน Firebase แล้ว ("+(c||"error")+")",true)});
+  subDay();subRange();
+  db.collection("shops").onSnapshot(snap=>{S.shops=snap.docs.map(d=>({id:d.id,...d.data()})).filter(r=>Array.isArray(r.members));renderRounds();renderPoints();renderSummary()},subErr);
+  db.collection("items").onSnapshot(snap=>{S.items=snap.docs.map(d=>({id:d.id,...d.data()})).filter(i=>i.name).sort((a,b)=>(a.at||"").localeCompare(b.at||""));renderCatalog();renderLootEditor(!S.draft.dirty);renderLootDay();renderPool()},subErr);
+  db.doc("config/discord").onSnapshot(d=>{S.dcUrl=d.exists?(d.data().url||""):"";renderDc()},subErr);
+  db.collection("claims").onSnapshot(snap=>{S.claims=snap.docs.map(d=>({id:d.id,...d.data()}));renderPoints()},subErr);
+  db.doc("config/pool").onSnapshot(d=>{S.pool=d.exists?d.data():{};renderPool()},subErr);
+  db.collection("poolout").onSnapshot(snap=>{S.poolOut=snap.docs.map(d=>({id:d.id,...d.data()}));renderPool()},subErr);
+  renderAll();
+})();
+</script>
+</body>
+</html>
