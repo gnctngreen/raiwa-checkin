@@ -224,6 +224,17 @@ a.btn{text-decoration:none;display:inline-block}
 .rhist{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:18px}
 .rhist .tc{display:inline-flex;align-items:center;gap:5px}
 .rhist .dot{width:9px;height:9px;background:var(--c)}
+/* pool */
+.poolgrid{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:12px;align-items:start;margin-bottom:12px}
+.poolgrid .stat .meta{display:block;margin-top:4px}
+.pitems{display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.pitem{display:flex;gap:8px;align-items:baseline;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.pitem b{font-family:var(--f-display);font-size:18px;font-variant-numeric:tabular-nums;color:var(--good)}
+.pout{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 0;border-top:1px dashed var(--line)}
+.pout select,.pout input{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.pout input{width:80px;text-align:right}
+.sub3{font-family:var(--f-display);font-size:14px;margin:6px 0;color:var(--muted)}
+@media (max-width:520px){.poolgrid{grid-template-columns:1fr}}
 .gate{position:fixed;inset:0;z-index:40;background:var(--bg);display:grid;place-items:center;padding:16px}
 .gbox{width:min(360px,100%);display:flex;flex-direction:column;gap:12px;align-items:stretch;text-align:center}
 .gbox img{align-self:center;border-radius:14px}
@@ -259,7 +270,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="checkin" aria-selected="true">เช็คชื่อ</button>
       <button role="tab" data-tab="random" aria-selected="false">สุ่มลูก</button>
-      <button role="tab" data-tab="loot" aria-selected="false">ของที่ได้</button>
+      <button role="tab" data-tab="loot" aria-selected="false">ของที่ได้ &amp; กองกลาง</button>
       <button role="tab" data-tab="shop" aria-selected="false">งัดร้าน</button>
       <button role="tab" data-tab="points" aria-selected="false">แต้ม &amp; เบิกกล่อง</button>
       <button role="tab" data-tab="summary" aria-selected="false">สรุป Active</button>
@@ -311,9 +322,20 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
   </section>
 
   <section data-view="loot" hidden>
+    <div class="panel" style="margin-bottom:18px">
+      <h2>กองกลางแก๊ง <button class="btn sm ghost dc" id="copyPool">คัดลอกการ์ดกองกลางไป Discord</button></h2>
+      <p class="hint">กล่องจากร้านที่ยังไม่มีคนเบิก และเศษของจาก Airdrop / Mini ที่หารแล้วไม่ลงตัว</p>
+      <div class="poolgrid">
+        <div class="stat"><b id="poolBoxes">0</b><span>กล่องจากร้านที่ยังไม่เบิก</span><span class="meta" id="poolHold"></span></div>
+        <div class="pitems" id="poolItems"></div>
+      </div>
+      <div class="pout" id="poolOutForm"></div>
+      <h3 class="sub3">ประวัติการนำของออกจากกองกลาง</h3>
+      <div class="hist" id="poolHist"></div>
+    </div>
     <div class="panel">
       <h2>ของที่ได้จาก Airdrop / Mini <span class="count" id="lootDayLabel"></span><button class="btn sm ghost dc" id="copyDay">คัดลอกสรุปทั้งวันไป Discord</button></h2>
-      <p class="hint">แต่ละรอบหารตามจำนวนคนที่ติ๊กชื่อในรอบนั้น บันทึกของได้ที่แท็บ "เช็คชื่อ" ใต้รายชื่อ</p>
+      <p class="hint">แต่ละรอบหารตามจำนวนคนที่ติ๊กชื่อ ได้คนละจำนวนเต็ม เศษที่เหลือเข้ากองกลาง บันทึกของได้ที่แท็บ "เช็คชื่อ" ใต้รายชื่อ</p>
       <div class="rounds" id="lootDay"></div>
     </div>
     <div class="panel" style="margin-top:18px">
@@ -415,6 +437,8 @@ function thDate(d){return new Date(d+"T00:00:00Z").toLocaleDateString("th-TH",{t
 
 const S={day:bkkNow().date,slot:null,att:{},attRange:{},shops:[],claims:[],canWrite:true,db:null,shopSel:null,shopMem:[],range:7,claimOpen:null,claimN:1,confirmDel:null,confirmClaimDel:null,editId:null,items:[],loot:{},draft:{slot:null,rows:[],dirty:false},catEdit:null,catDel:null,hMember:"m1",lootRange:{}};
 const fmtQ=x=>{const r=Math.round(x*100)/100;return r.toLocaleString("en-US",{maximumFractionDigits:2})};
+const split=(q,n)=>{q=+q||0;if(!n)return{each:0,rem:q};const each=Math.floor(q/n);return{each,rem:q-each*n}};
+const shareHtml=(q,n)=>{if(!n||!q)return "–";const {each,rem}=split(q,n);return `คนละ <b>${fmtQ(each)}</b>${rem?` <span class="count">· เศษ ${fmtQ(rem)} เข้ากองกลาง</span>`:""}`};
 const itemName=r=>{const it=S.items.find(i=>i.id===r.item);return it?it.name:(r.name||"ของที่ถูกลบ")};
 
 function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
@@ -474,22 +498,23 @@ function renderLootEditor(force){const changed=syncDraft();const key=S.day+"|"+S
   renderShares()}
 function renderShares(){const n=slotCount(S.slot),d=S.draft;const nEl=$("#lootN");if(!nEl)return;
   nEl.textContent=n?`· หาร ${n} คน`:"· ยังไม่มีคนติ๊กชื่อ";$("#lootDirty").textContent=d.dirty?"ยังไม่บันทึก":"";
-  d.rows.forEach((r,i)=>{const el=document.querySelector(`[data-share="${i}"]`);if(!el)return;const q=+r.qty||0;el.innerHTML=n&&q?`คนละ <b>${fmtQ(q/n)}</b>`:"–"})}
+  d.rows.forEach((r,i)=>{const el=document.querySelector(`[data-share="${i}"]`);if(!el)return;const q=+r.qty||0;el.innerHTML=shareHtml(q,n)})}
 async function saveLoot(){if(!S.db)return;const d=S.draft,slot=d.slot,day=S.day;
   const rows=d.rows.filter(r=>r.item&&+r.qty>0).map(r=>({item:r.item,name:itemName(r),qty:+r.qty}));
   const ref=S.db.collection("loot").doc(`${day}_${slot}`);$("#lootSave").disabled=true;
   try{if(rows.length)await ref.set({date:day,slot,items:rows,at:new Date().toISOString()});else await ref.delete();
+    if(day===S.day)writePool(`${day}_${slot}`,rows,slotCount(slot));
     d.dirty=false;d.rows=rows.map(x=>({...x}));S.loot={...S.loot,[slot]:{date:day,slot,items:rows}};const sv=S.slot;S.slot=slot;const txt=slotText(slot);S.slot=sv;share("บันทึกของรอบนี้แล้ว",txt);renderLootEditor(true)}catch(e){writeErr(e);renderLootEditor(true)}}
 async function addItem(name,quiet){const dup=S.items.find(i=>i.name.toLowerCase()===name.toLowerCase());if(dup){if(!quiet)toast("มีของชื่อนี้ในรายการแล้ว");return dup.id}
   if(!S.db||!S.canWrite)return null;try{const ref=S.db.collection("items").doc();await ref.set({name,at:new Date().toISOString()});
     if(!S.items.find(i=>i.id===ref.id))S.items=[...S.items,{id:ref.id,name}];toast(`เพิ่ม "${name}" แล้ว`);return ref.id}catch(e){writeErr(e);return null}}
 
-function renderLootDay(){$("#lootDayLabel").textContent=thDate(S.day);
+function renderLootDay(){renderPool();$("#lootDayLabel").textContent=thDate(S.day);
   const list=SLOTS.filter(s=>S.loot[s.k]&&(S.loot[s.k].items||[]).length).sort((a,b)=>a.t.localeCompare(b.t));
   if(!list.length){$("#lootDay").innerHTML=`<div class="empty">ยังไม่มีการบันทึกของในวันนี้ ไปที่แท็บ "เช็คชื่อ" เลือกรอบ แล้วกด "+ เพิ่มของ"</div>`;return}
   $("#lootDay").innerHTML=list.map(s=>{const n=slotCount(s.k);const who=MEMBERS.filter(m=>isOn(m.id,s.k));
     return `<div class="round" style="--c:${s.type==="a"?"var(--accent)":"var(--muted)"}"><span class="t">${s.t}</span><div class="body"><div class="row"><b>${s.type==="a"?"Airdrop":"Mini Supply"}</b><span class="pts">${n?n+" คน":"ยังไม่มีคนติ๊กชื่อ"}</span></div>
-    <div class="lootlist">${S.loot[s.k].items.map(r=>`<div><span>${esc(itemName(r))} × ${fmtQ(r.qty)}</span><span>${n?`คนละ <b>${fmtQ(r.qty/n)}</b>`:"–"}</span></div>`).join("")}</div>
+    <div class="lootlist">${S.loot[s.k].items.map(r=>`<div><span>${esc(itemName(r))} × ${fmtQ(r.qty)}</span><span>${n?shareHtml(r.qty,n):"ยังไม่มีคนติ๊กชื่อ ทั้งหมดอยู่ในกองกลาง"}</span></div>`).join("")}</div>
     <div class="who">${who.map(m=>`<span class="chip">${esc(m.name)}</span>`).join("")}</div></div></div>`}).join("")}
 
 function renderCatalog(){$("#catCount").textContent=S.items.length?`${S.items.length} รายการ`:"";
@@ -507,10 +532,37 @@ $("#catAdd").onclick=async()=>{const el=$("#catNew"),nm=el.value.trim();if(!nm)r
 $("#catNew").onkeydown=e=>{if(e.key==="Enter")$("#catAdd").click()};
 
 const chains={};
+/* ---------- กองกลาง ---------- */
+function mergeWrite(ref,data){if(S.fbMode)return ref.set(data,{merge:true});return ref.get().then(sn=>sn.exists?ref.update(data):ref.set(data))}
+function remArr(items,n){return (items||[]).map(r=>({i:r.item,q:split(r.qty,n).rem,n:itemName(r)})).filter(x=>x.q>0)}
+function writePool(key,items,n){const arr=remArr(items,n);const cur=((S.pool||{}).byRound||{})[key];if(JSON.stringify(cur||[])===JSON.stringify(arr))return;
+  S.pool={...(S.pool||{}),byRound:{...((S.pool||{}).byRound||{}),[key]:arr}};renderPool();
+  chains.pool=(chains.pool||Promise.resolve()).then(()=>mergeWrite(S.db.doc("config/pool"),{byRound:{[key]:arr}})).catch(writeErr)}
+function poolItems(){const T={};for(const arr of Object.values((S.pool||{}).byRound||{}))for(const e of (arr||[])){if(!e||!e.i)continue;T[e.i]=T[e.i]||{id:e.i,qty:0,name:e.n};T[e.i].qty+=+e.q||0}
+  for(const o of S.poolOut||[]){T[o.item]=T[o.item]||{id:o.item,qty:0,name:o.name};T[o.item].qty-=o.qty}
+  return Object.values(T).map(x=>({...x,name:itemName({item:x.id,name:x.name})})).filter(x=>x.qty>0).sort((a,b)=>b.qty-a.qty)}
+function poolBoxes(){return Math.max(0,S.shops.length-S.claims.reduce((a,c)=>a+(c.boxes||0),0))}
+function renderPool(){if(!$("#poolBoxes"))return;const P=poolItems(),{K}=keepers();
+  $("#poolBoxes").textContent=poolBoxes();const hold=MEMBERS.filter(m=>K[m.id].hold>0);$("#poolHold").textContent=hold.length?"อยู่กับ "+hold.map(m=>`${m.name} ${K[m.id].hold}`).join(", "):"";
+  $("#poolItems").innerHTML=P.length?P.map(x=>`<div class="pitem"><span>${esc(x.name)}</span><b>${fmtQ(x.qty)}</b></div>`).join(""):`<div class="empty" style="flex:1">ยังไม่มีเศษของในกองกลาง</div>`;
+  const f=$("#poolOutForm");const keep={it:($("#poItem")||{}).value,q:($("#poQty")||{}).value,to:($("#poTo")||{}).value};
+  f.innerHTML=S.canWrite&&P.length?`<span>นำของออก:</span><select id="poItem" aria-label="ของ">${P.map(x=>`<option value="${x.id}">${esc(x.name)} (มี ${fmtQ(x.qty)})</option>`).join("")}</select><input type="number" id="poQty" min="1" step="1" value="1" aria-label="จำนวน"><select id="poTo" aria-label="ให้ใคร"><option value="">ใช้ในแก๊ง / ไม่ระบุคน</option>${MEMBERS.map(m=>`<option value="${m.id}">ให้ ${esc(m.name)}</option>`).join("")}</select><button class="btn sm" id="poGo">นำออกจากกองกลาง</button>`:"";
+  if($("#poItem")){if(keep.it&&P.find(x=>x.id===keep.it))$("#poItem").value=keep.it;if(keep.q)$("#poQty").value=keep.q;if(keep.to!=null)$("#poTo").value=keep.to;
+    $("#poGo").onclick=async()=>{const id=$("#poItem").value,q=Math.floor(+$("#poQty").value||0),to=$("#poTo").value||null;const it=poolItems().find(x=>x.id===id);
+      if(!it||q<1){toast("ใส่จำนวนอย่างน้อย 1");return}if(q>it.qty){toast(`ในกองกลางมี ${it.name} แค่ ${fmtQ(it.qty)}`);return}
+      const now=bkkNow();const rec={item:id,name:it.name,qty:q,to,date:now.date,time:now.time,at:new Date().toISOString()};$("#poGo").disabled=true;
+      try{await S.db.collection("poolout").add(rec);S.poolOut=[...(S.poolOut||[]),{...rec,id:"tmp"+Date.now()}];renderPool();
+        share(`นำ ${it.name} ${q} ออกจากกองกลางแล้ว`,quote([`## 📤 เบิกของกองกลาง`,SEP,`🎁 ${it.name} × **${q}**${to?`\n👤 ให้: **${memName(to)}**`:""}`,SEP,...poolLines(),"",stamp()]))}catch(e){writeErr(e);renderPool()}}}
+  const H=[...(S.poolOut||[])].sort((a,b)=>(b.at||"").localeCompare(a.at||"")).slice(0,15);
+  $("#poolHist").innerHTML=H.length?H.map(o=>{const conf=S.poDel===o.id;return `<div><span class="when">${thDate(o.date)} ${esc(o.time||"")}</span><b>${esc(itemName({item:o.item,name:o.name}))} × ${fmtQ(o.qty)}</b><span class="count">${o.to?"ให้ "+esc(memName(o.to)):"ใช้ในแก๊ง"}</span><span style="flex:1"></span>${S.canWrite&&!String(o.id).startsWith("tmp")?(conf?`<button class="btn sm danger" data-pook="${o.id}">ยืนยันยกเลิก</button><button class="btn sm ghost" data-pocan>ไม่</button>`:`<button class="btn sm ghost" data-poask="${o.id}">ยกเลิก</button>`):""}</div>`}).join(""):`<div class="empty">ยังไม่มีการนำของออก</div>`;
+  document.querySelectorAll("[data-poask]").forEach(b=>b.onclick=()=>{S.poDel=b.dataset.poask;renderPool()});
+  document.querySelectorAll("[data-pocan]").forEach(b=>b.onclick=()=>{S.poDel=null;renderPool()});
+  document.querySelectorAll("[data-pook]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await S.db.collection("poolout").doc(b.dataset.pook).delete();S.poDel=null;toast("ยกเลิกแล้ว ของกลับเข้ากองกลาง")}catch(e){writeErr(e)}})}
 function toggleAtt(mid,k){if(!S.db){toast("ยังเชื่อมต่อฐานข้อมูลไม่ได้");return}
   const id=`${S.day}_${mid}`,val=!isOn(mid,k),day=S.day;
   // optimistic
   const cur=S.att[mid]||{date:day,member:mid,s:{}};S.att[mid]={...cur,s:{...cur.s,[k]:val}};renderCheckin();
+  const L=(S.loot[k]||{}).items;if(L&&L.length)writePool(`${day}_${k}`,L,slotCount(k));
   chains[id]=(chains[id]||Promise.resolve()).then(()=>S.db.collection("att").doc(id).set({date:day,member:mid,s:{[k]:val}},{merge:true})).catch(writeErr)}
 function writeErr(e){console.error(e);if(e&&e.code==="permission-denied"){status("ฐานข้อมูลไม่ยอมให้บันทึก ตรวจกฎ Firestore ตามขั้นตอนใน README",true)}else if(e&&e.code==="resource-exhausted")toast("ใช้โควตาฟรีของวันนี้หมดแล้ว ลองใหม่พรุ่งนี้");else toast("บันทึกไม่สำเร็จ ลองอีกครั้ง")}
 
@@ -573,7 +625,7 @@ function renderPoints(){const L=ledger();
   const hist=[...S.claims].sort((a,b)=>(b.at||"").localeCompare(a.at||""));
   $("#claimHist").innerHTML=hist.length?hist.map(c=>{const conf=S.confirmClaimDel===c.id;return `<div><span class="when">${thDate(c.date)} ${esc(c.time||"")}</span><b>${esc(memName(c.member))}</b><span>เบิก ${c.boxes} กล่อง</span><span class="count">${c.from?"รับจาก "+esc(memName(c.from)):"ไม่ระบุคนส่งกล่อง"}</span><span style="flex:1"></span>${S.canWrite?(conf?`<button class="btn sm danger" data-cdel="${c.id}">ยืนยันยกเลิกการเบิก</button><button class="btn sm ghost" data-ccan>ไม่</button>`:`<button class="btn sm ghost" data-cask="${c.id}">ยกเลิก</button>`):""}</div>`}).join(""):`<div class="empty">ยังไม่มีใครเบิกกล่อง</div>`;
   $("#claimCount").textContent=hist.length?`${hist.length} ครั้ง · ${hist.reduce((a,c)=>a+(c.boxes||0),0)} กล่อง`:"";
-  renderKeepers();renderHistory();
+  renderKeepers();renderHistory();renderPool();
   document.querySelectorAll("[data-cask]").forEach(b=>b.onclick=()=>{S.confirmClaimDel=b.dataset.cask;renderPoints()});
   document.querySelectorAll("[data-ccan]").forEach(b=>b.onclick=()=>{S.confirmClaimDel=null;renderPoints()});
   document.querySelectorAll("[data-cdel]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await S.db.collection("claims").doc(b.dataset.cdel).delete();S.confirmClaimDel=null;toast("ยกเลิกการเบิกแล้ว")}catch(e){writeErr(e)}})}
@@ -607,7 +659,7 @@ function memberDays(mid){const from=addDays(S.day,-29),D={};const get=d=>D[d]||(
   for(const doc of Object.values(S.attRange)){if(doc.member!==mid||doc.date<from||doc.date>S.day)continue;
     for(const [k,v] of Object.entries(doc.s||{}))if(v){const s=SLOTS.find(x=>x.k===k);if(!s)continue;get(doc.date)[s.type].push(s.t);
       const L=S.lootRange[doc.date+"_"+k];if(L&&(L.items||[]).length){const n=MEMBERS.filter(m=>{const ad=S.attRange[doc.date+"_"+m.id];return ad&&ad.s&&ad.s[k]}).length||1;
-        for(const it of L.items){const nm=itemName(it);get(doc.date).loot[nm]=(get(doc.date).loot[nm]||0)+it.qty/n}}}}
+        for(const it of L.items){const nm=itemName(it);get(doc.date).loot[nm]=(get(doc.date).loot[nm]||0)+split(it.qty,n).each}}}}
   for(const r of S.shops){if(r.date<from||r.date>S.day||!r.members.includes(mid))continue;get(r.date).shops.push(r)}
   for(const d of Object.values(D)){d.a.sort();d.m.sort();d.shops.sort((x,y)=>x.time.localeCompare(y.time))}
   return D}
@@ -640,19 +692,26 @@ function renderHistory(){const from=addDays(S.day,-29);$("#histHint").textConten
 /* ---------- Discord copy ---------- */
 const SE={green:"🟢",orange:"🟠",pink:"🩷",red:"🔴",purple:"🟣",yellow:"🟡",blue:"🩵",navy:"🔵"};
 const slotWho=k=>MEMBERS.filter(m=>isOn(m.id,k));
+const SEP="───────────── ✦ ─────────────";
+const quote=lines=>lines.map(l=>"> "+l).join("\n");
+const stamp=()=>`-# บันทึกผ่านเว็บเช็คชื่อ Raiwa • ${thDate(bkkNow().date)} ${bkkNow().time}`;
+function poolLines(){const P=poolItems(),boxes=poolBoxes(),{K}=keepers();const hold=MEMBERS.filter(m=>K[m.id].hold>0).map(m=>`${m.name} ${K[m.id].hold}`);
+  return ["🏦 **ของในกองกลางตอนนี้**",`📦 กล่องจากร้าน: **${boxes}** กล่อง${hold.length?` (อยู่กับ ${hold.join(", ")})`:""}`,...(P.length?P.map(x=>`🎁 ${x.name}: **${fmtQ(x.qty)}**`):["🎁 ของ: ยังไม่มี"])]}
 function slotText(k){const s=SLOTS.find(x=>x.k===k),who=slotWho(k),n=who.length,L=(S.loot[k]||{}).items||[];
-  let t=`${s.type==="a"?"✈️ **Airdrop":"📦 **Mini Supply"} ${s.t}** · ${thDate(S.day)}\n👥 มา ${n} คน${n?": "+who.map(m=>m.name).join(", "):""}`;
-  if(L.length)t+=`\n🎁 ของที่ได้${n?` (หาร ${n} คน)`:""}\n`+L.map(r=>`• ${itemName(r)} × ${fmtQ(r.qty)}${n?` → คนละ **${fmtQ(r.qty/n)}**`:""}`).join("\n");
-  return t}
+  const lines=[`## 🎁 ของเข้าแก๊ง!! | 🏷️ ${s.type==="a"?"Airdrop":"Mini Supply"} ${s.t}`,SEP,`📅 ${thDate(S.day)}`,`👥 **คนเล่น (${n}):** ${n?who.map(m=>m.name).join(", "):"-"}`,"",
+    `**ของที่ได้${n?` · หาร ${n} คน`:""}**`,...(L.length?L.map(r=>{const {each,rem}=split(r.qty,n);return `• ${itemName(r)} × ${fmtQ(r.qty)}${n?` → คนละ **${fmtQ(each)}**`:""}${rem?` · เศษ ${fmtQ(rem)} เข้ากองกลาง`:""}`}):["• ยังไม่ได้บันทึกของ"]),
+    SEP,...poolLines(),"",stamp()];
+  return quote(lines)}
+function poolText(){return quote([`## 🏦 กองกลางแก๊ง Raiwa`,SEP,...poolLines().slice(1),"",stamp()])}
 function roundText(r){const s=shopOf(r.shop),n=r.members.length;
-  return `${SE[r.shop]||"🏪"} **${s.n} ${r.time}** · ${thDate(r.date)}\n👥 ${r.members.map(memName).join(", ")} (${n} คน)\n⭐ คนละ ${(1/n).toFixed(2)} แต้ม${r.keeper?`\n📦 คนเก็บกล่อง: ${memName(r.keeper)}`:""}`}
+  return `${SE[r.shop]||"🏪"} **${s.n} ${r.time}** · ${thDate(r.date)}\n👥 ${r.members.map(memName).join(", ")} (${n} คน)\n⭐ คนละ ${(1/n).toFixed(2)} แต้ม${r.keeper?`\n📦 คนเก็บกล่อง: ${memName(r.keeper)}`:""}\n🏦 กล่องในกองกลางตอนนี้: ${poolBoxes()+(S.shops.some(x=>x.at&&x.at===r.at)?0:(S.editId?0:1))} กล่อง`}
 function shopsText(){const list=S.shops.filter(r=>r.date===S.day).sort((a,b)=>a.time.localeCompare(b.time));
   if(!list.length)return `🏪 **รอบร้าน · ${thDate(S.day)}**\nยังไม่มีรอบร้าน`;
   return `🏪 **รอบร้าน · ${thDate(S.day)}** (${list.length} รอบ)\n`+list.map(r=>`${SE[r.shop]||"🏪"} ${r.time} ${shopOf(r.shop).n} — ${r.members.map(memName).join(", ")} · คนละ ${(1/r.members.length).toFixed(2)}${r.keeper?` · เก็บกล่อง: ${memName(r.keeper)}`:""}`).join("\n")}
 function dayText(){const slots=[...SLOTS].sort((a,b)=>a.t.localeCompare(b.t)).filter(s=>slotWho(s.k).length||((S.loot[s.k]||{}).items||[]).length);
   let t=`📋 **สรุปแก๊ง Raiwa · ${thDate(S.day)}**\n`;
   t+=slots.length?slots.map(s=>{const n=slotWho(s.k).length,L=(S.loot[s.k]||{}).items||[];
-    return `${s.type==="a"?"✈️ Airdrop":"📦 Mini"} ${s.t} — ${n} คน${L.length?`\n   🎁 `+L.map(r=>`${itemName(r)} ${fmtQ(r.qty)}${n?` (คนละ ${fmtQ(r.qty/n)})`:""}`).join(", "):""}`}).join("\n"):"ยังไม่มีการเช็คชื่อ Airdrop / Mini";
+    return `${s.type==="a"?"✈️ Airdrop":"📦 Mini"} ${s.t} — ${n} คน${L.length?`\n   🎁 `+L.map(r=>`${itemName(r)} ${fmtQ(r.qty)}${n?` (คนละ ${split(r.qty,n).each}${split(r.qty,n).rem?`, เศษ ${split(r.qty,n).rem} เข้ากองกลาง`:""})`:""}`).join(", "):""}`}).join("\n"):"ยังไม่มีการเช็คชื่อ Airdrop / Mini";
   const list=S.shops.filter(r=>r.date===S.day);if(list.length)t+="\n\n"+shopsText();
   const act=MEMBERS.map(m=>({m,n:SLOTS.filter(s=>isOn(m.id,s.k)).length+list.filter(r=>r.members.includes(m.id)).length})).filter(x=>x.n).sort((a,b)=>b.n-a.n);
   if(act.length)t+=`\n\n🔥 **Active วันนี้**\n`+act.map((x,i)=>`${i+1}. ${x.m.name} — ${x.n} กิจกรรม`).join("\n");
@@ -677,6 +736,7 @@ $("#dcSave").onclick=async()=>{const v=$("#dcUrl").value.trim();if(v&&!DC_RE.tes
   if(!S.db)return;try{await S.db.doc("config/discord").set({url:v});S.dcUrl=v;renderDc();toast(v?"บันทึกห้อง Discord แล้ว":"ลบลิงก์ห้องแล้ว")}catch(e){writeErr(e)}};
 $("#copySlot").onclick=()=>copyOut(slotText(S.slot));
 $("#copyDay").onclick=()=>copyOut(dayText());
+$("#copyPool").onclick=()=>copyOut(poolText());
 $("#copyShops").onclick=()=>copyOut(shopsText());
 $("#copyPts").onclick=()=>copyOut(ptsText());
 $("#rounds").addEventListener("click",e=>{const b=e.target.closest("[data-copyr]");if(!b)return;const r=S.shops.find(x=>x.id===b.dataset.copyr);if(r)copyOut(roundText(r))});
@@ -711,7 +771,7 @@ document.querySelectorAll("[data-rcopy]").forEach(b=>b.onclick=()=>{const kind=b
   copyOut(`🎲 **สุ่มลูก ${R.label}** · ${bkkNow().time}\n${R.icon} ไปลูก **${st.last.n}**${st.off.size?`\n(ตัดออก: ${R.opts.filter(o=>st.off.has(o.k)).map(o=>o.n).join(", ")})`:""}`)});
 renderRandom("mini");renderRandom("air");
 
-function renderAll(){renderDc();renderCheckin();renderLootDay();renderCatalog();renderShopForm();renderRounds();renderPoints();renderSummary()}
+function renderAll(){renderPool();renderDc();renderCheckin();renderLootDay();renderCatalog();renderShopForm();renderRounds();renderPoints();renderSummary()}
 
 /* ---------- data ---------- */
 let unDay=null,unRange=null,unLoot=null;
@@ -747,7 +807,7 @@ $("#logout").onclick=()=>{try{localStorage.removeItem(CODE_KEY)}catch(e){}locati
   const code=getCode();if(!code){status("ใส่รหัสแก๊งเพื่อเริ่มใช้งาน",false);showGate();return}
   firebase.initializeApp(cfg);const fs=firebase.firestore();const root=fs.collection("gangs").doc(code);
   const db={collection:p=>root.collection(p),doc:p=>{const [c,d]=p.split("/");return root.collection(c).doc(d)}};
-  S.db=db;status(null);
+  S.db=db;S.fbMode=true;status(null);
   const probe=Promise.race([db.doc("config/discord").get({source:"server"}),new Promise((_,rej)=>setTimeout(()=>rej({code:"timeout"}),15000))]);
   probe.catch(e=>{console.error("Firestore check",e);const c=e&&e.code;
     status(c==="permission-denied"?"เชื่อมต่อได้ แต่บันทึกไม่ได้: ตรวจว่าวางกฎ (Rules) ใน Firestore แล้วกด Publish":
@@ -758,6 +818,8 @@ $("#logout").onclick=()=>{try{localStorage.removeItem(CODE_KEY)}catch(e){}locati
   db.collection("items").onSnapshot(snap=>{S.items=snap.docs.map(d=>({id:d.id,...d.data()})).filter(i=>i.name).sort((a,b)=>(a.at||"").localeCompare(b.at||""));renderCatalog();renderLootEditor(!S.draft.dirty);renderLootDay()},subErr);
   db.doc("config/discord").onSnapshot(d=>{S.dcUrl=d.exists?(d.data().url||""):"";renderDc()},subErr);
   db.collection("claims").onSnapshot(snap=>{S.claims=snap.docs.map(d=>({id:d.id,...d.data()}));renderPoints()},subErr);
+  db.doc("config/pool").onSnapshot(d=>{S.pool=d.exists?d.data():{};renderPool()},subErr);
+  db.collection("poolout").onSnapshot(snap=>{S.poolOut=snap.docs.map(d=>({id:d.id,...d.data()}));renderPool()},subErr);
   renderAll();
 })();
 </script>
