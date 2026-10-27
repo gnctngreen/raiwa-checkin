@@ -203,6 +203,27 @@ a.btn{text-decoration:none;display:inline-block}
 #shareGo{background:#5865f2;color:#fff}
 .copybox{position:fixed;inset:auto 0 0 0;z-index:30;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -8px 30px rgba(0,0,0,.3);padding-block:14px calc(14px + env(safe-area-inset-bottom,0px))}
 .copybox textarea{width:100%;height:180px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font:13px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
+/* random */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px;align-items:start}
+.rcard{display:flex;flex-direction:column;gap:12px}
+.rcard .hint{margin:0}
+.rchips{display:flex;flex-wrap:wrap;gap:8px}
+.rchip{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);font-weight:500}
+.rchip .dot{background:var(--c)}
+.rchip[aria-pressed=false]{opacity:.45;text-decoration:line-through}
+.rresult{height:132px;border-radius:14px;border:1px dashed var(--line);display:grid;place-items:center;text-align:center;background:var(--panel2);transition:background .15s,border-color .15s}
+.rresult .rq{font-family:var(--f-display);font-size:44px;font-weight:700;color:var(--muted)}
+.rresult.on{border-style:solid;border-color:var(--c);background:color-mix(in srgb,var(--c) 22%,var(--panel2))}
+.rresult .rball{width:58px;height:58px;border-radius:50%;background:var(--c);margin:0 auto 6px;box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 35%,transparent)}
+.rresult .rname{font-family:var(--f-display);font-size:24px;font-weight:700;line-height:1.1}
+.rresult.spin .rname{opacity:.7}
+.rresult.done .rball{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.rresult.done .rball{animation:none}}
+.rbtn{flex:1;min-width:160px;padding:12px 18px;font-size:16px}
+.rhist{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:18px}
+.rhist .tc{display:inline-flex;align-items:center;gap:5px}
+.rhist .dot{width:9px;height:9px;background:var(--c)}
 .gate{position:fixed;inset:0;z-index:40;background:var(--bg);display:grid;place-items:center;padding:16px}
 .gbox{width:min(360px,100%);display:flex;flex-direction:column;gap:12px;align-items:stretch;text-align:center}
 .gbox img{align-self:center;border-radius:14px}
@@ -237,6 +258,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
     </div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="checkin" aria-selected="true">เช็คชื่อ</button>
+      <button role="tab" data-tab="random" aria-selected="false">สุ่มลูก</button>
       <button role="tab" data-tab="loot" aria-selected="false">ของที่ได้</button>
       <button role="tab" data-tab="shop" aria-selected="false">งัดร้าน</button>
       <button role="tab" data-tab="points" aria-selected="false">แต้ม &amp; เบิกกล่อง</button>
@@ -267,6 +289,27 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
     </div>
   </section>
 
+  <section data-view="random" hidden>
+    <div class="rgrid">
+      <div class="panel rcard" data-rkind="mini">
+        <h2>สุ่มลูก Mini Supply</h2>
+        <p class="hint">แตะสีเพื่อตัดลูกที่ไม่อยากไปออก แล้วกดสุ่ม</p>
+        <div class="rchips" data-chips="mini"></div>
+        <div class="rresult" data-result="mini" aria-live="polite"><span class="rq">?</span></div>
+        <div class="row"><button class="btn rbtn" data-roll="mini">สุ่ม Mini Supply</button><button class="btn sm ghost" data-rcopy="mini" hidden>คัดลอกไป Discord</button></div>
+        <div class="rhist" data-hist="mini"></div>
+      </div>
+      <div class="panel rcard" data-rkind="air">
+        <h2>สุ่มลูก Airdrop</h2>
+        <p class="hint">แตะสีเพื่อตัดลูกที่ไม่อยากไปออก แล้วกดสุ่ม</p>
+        <div class="rchips" data-chips="air"></div>
+        <div class="rresult" data-result="air" aria-live="polite"><span class="rq">?</span></div>
+        <div class="row"><button class="btn rbtn" data-roll="air">สุ่ม Airdrop</button><button class="btn sm ghost" data-rcopy="air" hidden>คัดลอกไป Discord</button></div>
+        <div class="rhist" data-hist="air"></div>
+      </div>
+    </div>
+  </section>
+
   <section data-view="loot" hidden>
     <div class="panel">
       <h2>ของที่ได้จาก Airdrop / Mini <span class="count" id="lootDayLabel"></span><button class="btn sm ghost dc" id="copyDay">คัดลอกสรุปทั้งวันไป Discord</button></h2>
@@ -291,6 +334,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
         <div class="field"><span>คนที่เล่น <span id="pickCount">(0/5)</span></span><div class="members" id="shopMembers"></div></div>
         <div class="field"><span>คนเก็บกล่องรอบนี้</span><div class="shops" id="keeperPick"></div></div>
         <div class="split" id="splitPreview">เลือกร้านและคนเล่นก่อน</div>
+        <div class="banner" id="editBanner" hidden></div>
         <div class="row"><button class="btn" id="saveShop" disabled>บันทึกรอบนี้</button><button class="btn ghost" id="clearShop">ล้าง</button></div>
       </div>
     </div>
@@ -369,7 +413,7 @@ function bkkNow(){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Bangko
 function addDays(d,n){const x=new Date(d+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}
 function thDate(d){return new Date(d+"T00:00:00Z").toLocaleDateString("th-TH",{timeZone:"UTC",day:"numeric",month:"short",year:"2-digit"})}
 
-const S={day:bkkNow().date,slot:null,att:{},attRange:{},shops:[],claims:[],canWrite:true,db:null,shopSel:null,shopMem:[],range:7,claimOpen:null,claimN:1,confirmDel:null,confirmClaimDel:null,items:[],loot:{},draft:{slot:null,rows:[],dirty:false},catEdit:null,catDel:null,hMember:"m1",lootRange:{}};
+const S={day:bkkNow().date,slot:null,att:{},attRange:{},shops:[],claims:[],canWrite:true,db:null,shopSel:null,shopMem:[],range:7,claimOpen:null,claimN:1,confirmDel:null,confirmClaimDel:null,editId:null,items:[],loot:{},draft:{slot:null,rows:[],dirty:false},catEdit:null,catDel:null,hMember:"m1",lootRange:{}};
 const fmtQ=x=>{const r=Math.round(x*100)/100;return r.toLocaleString("en-US",{maximumFractionDigits:2})};
 const itemName=r=>{const it=S.items.find(i=>i.id===r.item);return it?it.name:(r.name||"ของที่ถูกลบ")};
 
@@ -379,7 +423,7 @@ function status(msg,bad){const s=$("#status");if(!msg){s.hidden=true;return}s.hi
 /* ---------- tabs ---------- */
 function showTab(t){document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));document.querySelectorAll("[data-view]").forEach(v=>v.hidden=v.dataset.view!==t)}
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{showTab(b.dataset.tab);try{history.replaceState(null,"","#"+b.dataset.tab)}catch(e){}});
-const h=(location.hash||"").slice(1);if(["checkin","loot","shop","points","summary","history"].includes(h))showTab(h);
+const h=(location.hash||"").slice(1);if(["checkin","random","loot","shop","points","summary","history"].includes(h))showTab(h);
 
 /* ---------- check-in ---------- */
 function pickDefaultSlot(){const n=bkkNow();if(S.day!==n.date){S.slot=SLOTS[0].k;return}
@@ -482,20 +526,26 @@ function renderShopForm(){$("#shopPick").innerHTML=SHOPS.map(s=>`<button class="
   document.querySelectorAll("[data-kp]").forEach(b=>b.onclick=()=>{S.shopKeeper=b.dataset.kp;renderShopForm()});
   const n=S.shopMem.length;
   $("#splitPreview").innerHTML=n&&S.shopSel?`${shopOf(S.shopSel).n} · 1 กล่อง ÷ ${n} คน = คนละ <b>${(1/n).toFixed(2)}</b> แต้ม`:"เลือกร้านและคนเล่นก่อน";
-  $("#saveShop").disabled=!(n&&S.shopSel&&$("#shopTime").value&&S.canWrite&&S.db)}
+  $("#saveShop").disabled=!(n&&S.shopSel&&$("#shopTime").value&&S.canWrite&&S.db);
+  $("#saveShop").textContent=S.editId?"บันทึกการแก้ไข":"บันทึกรอบนี้";$("#clearShop").textContent=S.editId?"ยกเลิกแก้ไข":"ล้าง";
+  const eb=$("#editBanner");eb.hidden=!S.editId;if(S.editId){const r=S.shops.find(x=>x.id===S.editId);eb.textContent=r?`กำลังแก้ไขรอบ ${shopOf(r.shop).n} ${r.time} · แก้แล้วกด "บันทึกการแก้ไข"`:"กำลังแก้ไขรอบร้าน"}}
 $("#shopTime").addEventListener("input",renderShopForm);
-$("#clearShop").onclick=()=>{S.shopSel=null;S.shopMem=[];renderShopForm()};
+$("#clearShop").onclick=()=>{S.editId=null;S.shopSel=null;S.shopMem=[];$("#shopTime").value=bkkNow().time;renderShopForm()};
+function editRound(id){const r=S.shops.find(x=>x.id===id);if(!r)return;S.editId=id;S.shopSel=r.shop;S.shopMem=[...r.members];S.shopKeeper=r.keeper||r.members[0];$("#shopTime").value=r.time;S.confirmDel=null;renderShopForm();renderRounds();$("#shopPick").closest(".panel").scrollIntoView?.({behavior:"smooth",block:"start"})}
 $("#saveShop").onclick=async()=>{const b=$("#saveShop");b.disabled=true;
-  try{const rec={date:S.day,time:$("#shopTime").value,shop:S.shopSel,members:[...S.shopMem],keeper:S.shopKeeper,at:new Date().toISOString()};await S.db.collection("shops").add(rec);
-    share(`บันทึก ${shopOf(rec.shop).n} ${rec.time} แล้ว`,roundText(rec));S.shopSel=null;S.shopMem=[];renderShopForm()}catch(e){writeErr(e);renderShopForm()}};
+  try{const base={time:$("#shopTime").value,shop:S.shopSel,members:[...S.shopMem],keeper:S.shopKeeper};let rec,msg;
+    if(S.editId){const old=S.shops.find(x=>x.id===S.editId)||{};rec={...old,...base,editedAt:new Date().toISOString()};delete rec.id;await S.db.collection("shops").doc(S.editId).update({...base,editedAt:rec.editedAt});msg=`แก้ไข ${shopOf(rec.shop).n} ${rec.time} แล้ว`}
+    else{rec={date:S.day,...base,at:new Date().toISOString()};await S.db.collection("shops").add(rec);msg=`บันทึก ${shopOf(rec.shop).n} ${rec.time} แล้ว`}
+    share(msg,(S.editId?"✏️ **แก้ไขรอบร้าน**\n":"")+roundText(rec));S.editId=null;S.shopSel=null;S.shopMem=[];$("#shopTime").value=bkkNow().time;renderShopForm();renderRounds()}catch(e){writeErr(e);renderShopForm()}};
 function renderRounds(){const list=S.shops.filter(r=>r.date===S.day).sort((a,b)=>a.time.localeCompare(b.time));
   $("#roundCount").textContent=list.length?`${list.length} รอบ · ${thDate(S.day)}`:thDate(S.day);
   if(!list.length){$("#rounds").innerHTML=`<div class="empty">ยังไม่มีรอบร้านในวันนี้ บันทึกรอบแรกได้จากฟอร์มด้านบน</div>`;return}
   $("#rounds").innerHTML=list.map(r=>{const s=shopOf(r.shop),n=r.members.length;const conf=S.confirmDel===r.id;
     return `<div class="round" style="--c:${s.c}"><span class="t">${esc(r.time)}</span><div class="body"><div class="row"><span class="dot"></span><b>${s.n}</b><span class="pts">${n} คน · คนละ ${(1/n).toFixed(2)} แต้ม</span></div><div class="who">${r.members.map(id=>`<span class="chip">${esc(memName(id))}</span>`).join("")}</div>
     <label class="row keep" style="margin-top:6px;gap:6px"><span class="pts">คนเก็บกล่อง</span><select data-keep="${r.id}" ${S.canWrite?"":"disabled"}><option value="">— ไม่ระบุ —</option>${r.members.map(id=>`<option value="${id}" ${r.keeper===id?"selected":""}>${esc(memName(id))}</option>`).join("")}</select></label></div>
-    <button class="btn sm ghost" data-copyr="${r.id}">คัดลอก</button>${S.canWrite?(conf?`<div class="row"><button class="btn sm danger" data-del="${r.id}">ยืนยันลบ</button><button class="btn sm ghost" data-cancel>ยกเลิก</button></div>`:`<button class="btn sm ghost" data-ask="${r.id}">ลบ</button>`):""}</div>`}).join("");
+    <button class="btn sm ghost" data-copyr="${r.id}">คัดลอก</button>${S.canWrite&&!conf?`<button class="btn sm ghost" data-edit="${r.id}">${S.editId===r.id?"กำลังแก้ไข":"แก้ไข"}</button>`:""}${S.canWrite?(conf?`<div class="row"><button class="btn sm danger" data-del="${r.id}">ยืนยันลบ</button><button class="btn sm ghost" data-cancel>ยกเลิก</button></div>`:`<button class="btn sm ghost" data-ask="${r.id}">ลบ</button>`):""}</div>`}).join("");
   document.querySelectorAll("[data-keep]").forEach(el=>el.onchange=async()=>{try{await S.db.collection("shops").doc(el.dataset.keep).update({keeper:el.value||null});toast("เปลี่ยนคนเก็บกล่องแล้ว")}catch(e){writeErr(e)}});
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editRound(b.dataset.edit));
   document.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{S.confirmDel=b.dataset.ask;renderRounds()});
   document.querySelectorAll("#rounds [data-cancel]").forEach(b=>b.onclick=()=>{S.confirmDel=null;renderRounds()});
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await S.db.collection("shops").doc(b.dataset.del).delete();S.confirmDel=null;toast("ลบรอบร้านแล้ว")}catch(e){writeErr(e)}})}
@@ -633,6 +683,34 @@ $("#rounds").addEventListener("click",e=>{const b=e.target.closest("[data-copyr]
 $("#copyClose").onclick=()=>$("#copyBox").hidden=true;
 $("#copyAgain").onclick=()=>{const ta=$("#copyText");ta.select();try{navigator.clipboard.writeText(ta.value).then(()=>toast("คัดลอกแล้ว"),()=>toast("กดค้างที่ข้อความแล้วเลือกคัดลอก"))}catch(e){}};
 
+/* ---------- random pick ---------- */
+const RAND={mini:{label:"Mini Supply",icon:"📦",opts:[{k:"orange",n:"ส้ม"},{k:"purple",n:"ม่วง"},{k:"green",n:"เขียว"},{k:"blue",n:"ฟ้า"}]},
+  air:{label:"Airdrop",icon:"✈️",opts:[{k:"yellow",n:"เหลือง"},{k:"red",n:"แดง"},{k:"navy",n:"น้ำเงิน"}]}};
+const RS={mini:{off:new Set(),last:null,hist:[],busy:false},air:{off:new Set(),last:null,hist:[],busy:false}};
+const rcol=k=>`var(--s-${k})`;
+function rint(n){try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}catch(e){return Math.floor(Math.random()*n)}}
+function renderRandom(kind){const R=RAND[kind],st=RS[kind];
+  const ch=document.querySelector(`[data-chips="${kind}"]`);
+  ch.innerHTML=R.opts.map(o=>`<button class="rchip" style="--c:${rcol(o.k)}" data-rk="${o.k}" aria-pressed="${!st.off.has(o.k)}"><span class="dot"></span>${o.n}</button>`).join("");
+  ch.querySelectorAll("[data-rk]").forEach(b=>b.onclick=()=>{const k=b.dataset.rk;if(st.off.has(k))st.off.delete(k);else{if(R.opts.length-st.off.size<=1){toast("ต้องเหลืออย่างน้อย 1 สี");return}st.off.add(k)}renderRandom(kind)});
+  const left=R.opts.filter(o=>!st.off.has(o.k)).length;
+  const rb=document.querySelector(`[data-roll="${kind}"]`);rb.disabled=st.busy;rb.textContent=st.busy?"กำลังสุ่ม…":`สุ่ม ${R.label}${st.off.size?` (${left} สี)`:""}`;
+  document.querySelector(`[data-rcopy="${kind}"]`).hidden=!st.last||st.busy;
+  document.querySelector(`[data-hist="${kind}"]`).innerHTML=st.hist.length?`<span>ล่าสุด:</span>`+st.hist.map(h=>`<span class="tc" style="--c:${rcol(h.k)}"><span class="dot"></span>${h.n} ${h.t}</span>`).join(""):""}
+function showPick(kind,o,final){const el=document.querySelector(`[data-result="${kind}"]`);el.style.setProperty("--c",rcol(o.k));el.classList.add("on");el.classList.toggle("spin",!final);el.classList.toggle("done",!!final);
+  el.innerHTML=`<div><div class="rball"></div><div class="rname">ลูก${o.n}</div></div>`}
+function roll(kind){const R=RAND[kind],st=RS[kind];if(st.busy)return;const pool=R.opts.filter(o=>!st.off.has(o.k));if(!pool.length)return;
+  const pick=pool[rint(pool.length)];st.busy=true;renderRandom(kind);
+  const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finish=()=>{st.busy=false;st.last=pick;st.hist=[{...pick,t:bkkNow().time},...st.hist].slice(0,5);showPick(kind,pick,true);renderRandom(kind)};
+  if(reduce||pool.length===1){finish();return}
+  let i=rint(pool.length),n=0;const steps=14+rint(pool.length);
+  const tick=()=>{showPick(kind,pool[i%pool.length],false);i++;n++;if(n<steps)setTimeout(tick,50+n*12);else finish()};tick()}
+document.querySelectorAll("[data-roll]").forEach(b=>b.onclick=()=>roll(b.dataset.roll));
+document.querySelectorAll("[data-rcopy]").forEach(b=>b.onclick=()=>{const kind=b.dataset.rcopy,R=RAND[kind],st=RS[kind];if(!st.last)return;
+  copyOut(`🎲 **สุ่มลูก ${R.label}** · ${bkkNow().time}\n${R.icon} ไปลูก **${st.last.n}**${st.off.size?`\n(ตัดออก: ${R.opts.filter(o=>st.off.has(o.k)).map(o=>o.n).join(", ")})`:""}`)});
+renderRandom("mini");renderRandom("air");
+
 function renderAll(){renderDc();renderCheckin();renderLootDay();renderCatalog();renderShopForm();renderRounds();renderPoints();renderSummary()}
 
 /* ---------- data ---------- */
@@ -656,7 +734,8 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 
 /* ---------- Firebase + รหัสแก๊ง ---------- */
 const CODE_KEY="raiwa-gang-code";
-function getCode(){try{return localStorage.getItem(CODE_KEY)||""}catch(e){return ""}}
+(()=>{const m=(location.hash||"").match(/^#g=([A-Za-z0-9_-]{6,})$/);if(m){window.__gang=m[1];try{localStorage.setItem(CODE_KEY,m[1])}catch(e){}try{history.replaceState(null,"",location.pathname)}catch(e){location.hash=""}}})();
+function getCode(){try{return localStorage.getItem(CODE_KEY)||window.__gang||""}catch(e){return window.__gang||""}}
 function showGate(msg){$("#gate").hidden=false;$("#gateMsg").textContent=msg||"";$("#gateCode").focus()}
 $("#gateGo").onclick=()=>{const v=$("#gateCode").value.trim();if(v.length<6||!/^[A-Za-z0-9_-]+$/.test(v)){$("#gateMsg").textContent="รหัสต้องเป็นตัวอังกฤษหรือตัวเลข อย่างน้อย 6 ตัว";return}
   try{localStorage.setItem(CODE_KEY,v)}catch(e){}location.reload()};
@@ -669,6 +748,11 @@ $("#logout").onclick=()=>{try{localStorage.removeItem(CODE_KEY)}catch(e){}locati
   firebase.initializeApp(cfg);const fs=firebase.firestore();const root=fs.collection("gangs").doc(code);
   const db={collection:p=>root.collection(p),doc:p=>{const [c,d]=p.split("/");return root.collection(c).doc(d)}};
   S.db=db;status(null);
+  const probe=Promise.race([db.doc("config/discord").get({source:"server"}),new Promise((_,rej)=>setTimeout(()=>rej({code:"timeout"}),15000))]);
+  probe.catch(e=>{console.error("Firestore check",e);const c=e&&e.code;
+    status(c==="permission-denied"?"เชื่อมต่อได้ แต่บันทึกไม่ได้: ตรวจว่าวางกฎ (Rules) ใน Firestore แล้วกด Publish":
+      c==="timeout"?"ยังติดต่อฐานข้อมูลไม่ได้ ข้อมูลที่กรอกอาจหายเมื่อรีเฟรช: ตรวจอินเทอร์เน็ต และตรวจว่าสร้าง Firestore Database ใน Firebase แล้ว":
+      "ติดต่อฐานข้อมูลไม่ได้ ข้อมูลที่กรอกจะไม่ถูกบันทึก: ตรวจว่าสร้าง Firestore Database (default) ใน Firebase แล้ว ("+(c||"error")+")",true)});
   subDay();subRange();
   db.collection("shops").onSnapshot(snap=>{S.shops=snap.docs.map(d=>({id:d.id,...d.data()})).filter(r=>Array.isArray(r.members));renderRounds();renderPoints();renderSummary()},subErr);
   db.collection("items").onSnapshot(snap=>{S.items=snap.docs.map(d=>({id:d.id,...d.data()})).filter(i=>i.name).sort((a,b)=>(a.at||"").localeCompare(b.at||""));renderCatalog();renderLootEditor(!S.draft.dirty);renderLootDay()},subErr);
