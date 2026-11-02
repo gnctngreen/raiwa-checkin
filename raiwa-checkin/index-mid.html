@@ -456,7 +456,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-const MEMBERS=["Marcos Avocado","Tongtang Tatugthung","Stitch Ohana","Panda Novice","Ada Dd","Holy Krab","PP Shiest","Thanjai Kamontivakorn","Zebra Grey","Ba Babe","Fill Rice","Tuu Challi","Bearry Rice","Izax Shiest","Karon Dd"].map((n,i)=>({id:"m"+(i+1),no:i+1,name:n}));
+const MEMBERS=["Marcos Avocado","Tongtang Tatugthung","Stitch Ohana","Panda Novice","Ada Dd","Holy Krab","PP Shiest","Thanjai Kamontivakorn","Zebra Grey","Ba Babe","Bacon Rip","Tuu Challi","Bearry Rice","Izax Shiest","Karon Dd"].map((n,i)=>({id:"m"+(i+1),no:i+1,name:n}));
 const AIR=["13:00","16:30","20:00","23:00"];
 const MINI=["00:00","01:30","02:00","02:30","03:30","04:30","08:30","09:30","11:00","12:30","14:30","15:30","20:30","21:30","22:30","23:30"];
 const SLOTS=[...AIR.map(t=>({k:"a"+t.replace(":",""),t,type:"a"})),...MINI.map(t=>({k:"m"+t.replace(":",""),t,type:"m"}))];
