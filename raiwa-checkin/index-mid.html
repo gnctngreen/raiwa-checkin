@@ -456,7 +456,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-const MEMBERS=["Marcos Avocado","Tongtang Tatugthung","Stitch Ohana","Panda Novice","Ada Dd","Holy Krab","PP Shiest","Thanjai Kamontivakorn","Zebra Grey","Ba Babe","Bacon Rip","Tuu Challi","Bearry Rice","Izax Shiest","Karon Dd"].map((n,i)=>({id:"m"+(i+1),no:i+1,name:n}));
+const MEMBERS=["Marcos Avocado","Tongtang Tatugthung","Stitch Ohana","Panda Novice","Ada Dd","Holy Krab","PP Shiest","Thanjai Kamontivakorn","Zebra Grey","Ba Babe","Fill Rice","Tuu Challi","Bearry Rice","Izax Shiest","Karon Dd"].map((n,i)=>({id:"m"+(i+1),no:i+1,name:n}));
 const AIR=["13:00","16:30","20:00","23:00"];
 const MINI=["00:00","01:30","02:00","02:30","03:30","04:30","08:30","09:30","11:00","12:30","14:30","15:30","20:30","21:30","22:30","23:30"];
 const SLOTS=[...AIR.map(t=>({k:"a"+t.replace(":",""),t,type:"a"})),...MINI.map(t=>({k:"m"+t.replace(":",""),t,type:"m"}))];
@@ -689,9 +689,9 @@ function renderSummary(){document.querySelectorAll("#rangeSeg button").forEach(b
   const R={};MEMBERS.forEach(m=>R[m.id]={a:0,m:0,s:0,p:0,days:new Set()});
   for(const d of Object.values(S.attRange)){if(d.date<from||d.date>to||!R[d.member])continue;for(const [k,v] of Object.entries(d.s||{}))if(v){if(k[0]==="a")R[d.member].a++;else R[d.member].m++;R[d.member].days.add(d.date)}}
   for(const r of S.shops){if(r.date<from||r.date>to)continue;const n=r.members.length;for(const id of r.members)if(R[id]){R[id].s++;R[id].p+=U/n;R[id].days.add(r.date)}}
-  const rows=[...MEMBERS].map(m=>({m,...R[m.id],tot:R[m.id].a+R[m.id].m+R[m.id].s})).sort((x,y)=>y.tot-x.tot||x.m.no-y.m.no);
+  const rows=[...MEMBERS].map(mem=>({...R[mem.id],mini:R[mem.id].m,m:mem,tot:R[mem.id].a+R[mem.id].m+R[mem.id].s})).sort((x,y)=>y.tot-x.tot||x.m.no-y.m.no);
   $("#sumTable").innerHTML=`<thead><tr><th>อันดับ</th><th class="name">สมาชิก</th><th class="air">Airdrop</th><th>Mini</th><th>ร้าน</th><th>แต้มร้าน</th><th>วันที่ออนไลน์</th><th>รวม</th></tr></thead><tbody>`+
-    rows.map((r,i)=>`<tr><td class="rank">${r.tot?i+1:"–"}</td><td class="name"><button class="mlink" data-hist="${r.m.id}">${esc(r.m.name)}</button></td><td>${r.a}</td><td>${r.m}</td><td>${r.s}</td><td>${fmtPts(Math.round(r.p))}</td><td>${r.days.size}</td><td class="tot">${r.tot}</td></tr>`).join("")+`</tbody>`;renderHistory()}
+    rows.map((r,i)=>`<tr><td class="rank">${r.tot?i+1:"–"}</td><td class="name"><button class="mlink" data-hist="${r.m.id}">${esc(r.m.name)}</button></td><td>${r.a}</td><td>${r.mini}</td><td>${r.s}</td><td>${fmtPts(Math.round(r.p))}</td><td>${r.days.size}</td><td class="tot">${r.tot}</td></tr>`).join("")+`</tbody>`;renderHistory()}
 document.querySelectorAll("#rangeSeg button").forEach(b=>b.onclick=()=>{S.range=+b.dataset.r;renderSummary()});
 $("#sumTable").addEventListener("click",e=>{const b=e.target.closest("[data-hist]");if(!b)return;S.hMember=b.dataset.hist;showTab("history");try{history.replaceState(null,"","#history")}catch(_){}renderHistory();window.scrollTo(0,0)});
 
