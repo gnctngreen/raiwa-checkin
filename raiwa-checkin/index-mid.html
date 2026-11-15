@@ -478,6 +478,9 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 <div class="sharebar" id="shareBar" hidden><div class="wrap sbin"><span id="shareMsg"></span><a class="btn sm" id="shareGo" target="_blank" rel="noopener" hidden>คัดลอก &amp; เปิด Discord</a><button class="btn sm" id="shareCopy" hidden>คัดลอกไป Discord</button><button class="btn sm ghost" id="shareClose">ปิด</button></div></div>
 <div class="copybox" id="copyBox" hidden><div class="wrap" style="display:flex;flex-direction:column;gap:8px"><div class="row"><b>คัดลอกข้อความนี้ไปวางใน Discord</b><span class="count" id="copyLen"></span><button class="btn sm ghost" id="copyClose" style="margin-left:auto">ปิด</button></div><textarea id="copyText" readonly aria-label="ข้อความสำหรับ Discord"></textarea><div class="row"><button class="btn sm" id="copyAgain">คัดลอก</button><span class="count">ถ้าปุ่มคัดลอกไม่ทำงาน กดค้างที่ข้อความ เลือกทั้งหมด แล้วคัดลอก</span></div></div></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 const DEFAULT_SLOTS=[["m1b","Armuay Tualek Kiss Mark"],["m2","Tongtang TaTugthung"],["m3","Stitch Ohana"],["m4","Panda Novice"],["m5","Ada DD"],["m6","Holy Krab"],["m7","PP Shiest"],["m8","Thanjai Kamontivakorn"],["m9","Zebra Grey"],["m10","Ba Babe"],["m11","BACON RIP"],["m12","TUU Challi"],["m13","Bearry Rice"],["m14","Izax Shiest"],["m15","Karon DD"]].map(([id,name],i)=>({no:i+1,id,name}));
 const DEFAULT_FORMER=[{id:"m1",name:"Marcos Avocado",no:1,left:"2026-11-15"}];
