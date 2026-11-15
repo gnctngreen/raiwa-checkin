@@ -876,7 +876,7 @@ renderRandom("mini");renderRandom("air");
 function saveSlots(list,former,msg){applySlots(list,former);renderAll();if(!S.db)return;
   S.db.doc("config/members").set({list:list.map(x=>({no:x.no,id:x.id||"",name:x.name||""})),former:former.map(x=>({id:x.id,name:x.name,no:x.no||0,left:x.left||""}))}).then(()=>toast(msg)).catch(writeErr)}
 function newId(no){return `s${no}-${Date.now().toString(36)}`}
-function renderSlots(){const box=$("#slotList");if(!box)return;const keep={};box.querySelectorAll("input[data-sn]").forEach(i=>{if(document.activeElement===i||i.value!==i.dataset.orig)keep[i.dataset.sn]=i.value});
+function renderSlotAdmin(){const box=$("#slotList");if(!box)return;const keep={};box.querySelectorAll("input[data-sn]").forEach(i=>{if(document.activeElement===i||i.value!==i.dataset.orig)keep[i.dataset.sn]=i.value});
   box.innerHTML=SLOTCFG.map(x=>{const v=keep[x.no]!=null?keep[x.no]:(x.name||"");const conf=S.slotConf&&S.slotConf.no===x.no?S.slotConf.kind:null;
     return `<div class="srow ${x.id?"":"empty"}"><span class="no">#${x.no}</span><input type="text" data-sn="${x.no}" data-orig="${esc(x.name||"")}" value="${esc(v)}" maxlength="40" placeholder="${x.id?"":"สล็อตว่าง พิมพ์ชื่อคนใหม่"}" aria-label="ชื่อสล็อต ${x.no}" ${S.canWrite?"":"disabled"}>
     <div class="acts2">${!S.canWrite?"":conf?`<span class="count">${conf==="new"?`ให้ "${esc(v)}" เป็นคนใหม่แทน ${esc(x.name)}?`:`ให้ ${esc(x.name)} ออกจากสล็อต?`}</span><button class="btn sm danger" data-sok="${x.no}">ยืนยัน</button><button class="btn sm ghost" data-scan>ยกเลิก</button>`:
@@ -889,10 +889,10 @@ function renderSlots(){const box=$("#slotList");if(!box)return;const keep={};box
   $("#slotAdd").disabled=!S.canWrite}
 $("#slotList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const no=+(b.dataset.sren||b.dataset.snew||b.dataset.semp||b.dataset.sfill||b.dataset.sok||b.dataset.sdel||0);
   const val=no?($(`#slotList input[data-sn="${no}"]`)||{}).value.trim():"";const list=SLOTCFG.map(x=>({...x})),x=list.find(y=>y.no===no);const today=bkkNow().date;
-  if(b.hasAttribute("data-scan")){S.slotConf=null;renderSlots();return}
+  if(b.hasAttribute("data-scan")){S.slotConf=null;renderSlotAdmin();return}
   if(b.dataset.sren){if(!val){toast("พิมพ์ชื่อก่อน");return}if(val===x.name){toast("ชื่อเหมือนเดิม");return}x.name=val;saveSlots(list,FORMER,`แก้ชื่อสล็อต #${no} แล้ว`);return}
-  if(b.dataset.snew){if(!val||val===x.name){toast("พิมพ์ชื่อคนใหม่ในช่องก่อน แล้วกดคนใหม่เข้าสล็อต");return}S.slotConf={no,kind:"new"};renderSlots();return}
-  if(b.dataset.semp){S.slotConf={no,kind:"empty"};renderSlots();return}
+  if(b.dataset.snew){if(!val||val===x.name){toast("พิมพ์ชื่อคนใหม่ในช่องก่อน แล้วกดคนใหม่เข้าสล็อต");return}S.slotConf={no,kind:"new"};renderSlotAdmin();return}
+  if(b.dataset.semp){S.slotConf={no,kind:"empty"};renderSlotAdmin();return}
   if(b.dataset.sok){const kind=S.slotConf&&S.slotConf.kind;S.slotConf=null;const former=[...FORMER,{id:x.id,name:x.name,no,left:today}];
     if(kind==="new"){x.id=newId(no);x.name=val;saveSlots(list,former,`${val} เข้าสล็อต #${no} แล้ว`)}else{x.id="";x.name="";saveSlots(list,former,`สล็อต #${no} ว่างแล้ว`)}return}
   if(b.dataset.sfill){if(!val){toast("พิมพ์ชื่อคนใหม่ก่อน");return}x.id=newId(no);x.name=val;saveSlots(list,FORMER,`${val} เข้าสล็อต #${no} แล้ว`);return}
@@ -900,19 +900,19 @@ $("#slotList").addEventListener("click",e=>{const b=e.target.closest("button");i
 async function clearAtt(id,name){try{const snap=await S.db.collection("att").where("member","==",id).get();await Promise.all(snap.docs.map(d=>S.db.collection("att").doc(d.id).delete()));
   S.attRange=Object.fromEntries(Object.entries(S.attRange).filter(([k,v])=>v.member!==id));renderAll();toast(`ล้างประวัติเช็คชื่อของ ${name} แล้ว (${snap.docs.length} วัน)`)}catch(err){writeErr(err)}}
 $("#formerList").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  if(b.dataset.fc){S.fcConf=b.dataset.fc;renderSlots();return}if(b.hasAttribute("data-fcno")){S.fcConf=null;renderSlots();return}
-  if(b.dataset.fcok){const f=FORMER.find(x=>x.id===b.dataset.fcok);S.fcConf=null;renderSlots();if(f&&S.db)clearAtt(f.id,f.name)}});
+  if(b.dataset.fc){S.fcConf=b.dataset.fc;renderSlotAdmin();return}if(b.hasAttribute("data-fcno")){S.fcConf=null;renderSlotAdmin();return}
+  if(b.dataset.fcok){const f=FORMER.find(x=>x.id===b.dataset.fcok);S.fcConf=null;renderSlotAdmin();if(f&&S.db)clearAtt(f.id,f.name)}});
 $("#rpSlot").onchange=()=>{$("#rpClear").closest("label").hidden=!(SLOTCFG.find(x=>x.no===+$("#rpSlot").value)||{}).id};
 $("#rpActs").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;
-  if(b.id==="rpNo"){S.rpConf=null;renderSlots();return}
+  if(b.id==="rpNo"){S.rpConf=null;renderSlotAdmin();return}
   if(b.id==="rpGo"){const name=$("#rpName").value.trim(),no=+$("#rpSlot").value;if(!name){toast("พิมพ์ชื่อคนใหม่");return}if(!no){toast("เลือกเลขสล็อตที่จะแทน");return}
-    const x=SLOTCFG.find(y=>y.no===no);S.rpConf={name,no,old:x.id?x.name:"",oldId:x.id,clear:!!x.id&&$("#rpClear").checked};renderSlots();return}
+    const x=SLOTCFG.find(y=>y.no===no);S.rpConf={name,no,old:x.id?x.name:"",oldId:x.id,clear:!!x.id&&$("#rpClear").checked};renderSlotAdmin();return}
   if(b.id==="rpOk"){const c=S.rpConf;S.rpConf=null;const list=SLOTCFG.map(y=>({...y})),x=list.find(y=>y.no===c.no);const former=c.oldId?[...FORMER,{id:c.oldId,name:c.old,no:c.no,left:bkkNow().date}]:FORMER;
     x.id=newId(c.no);x.name=c.name;$("#rpName").value="";$("#rpSlot").value="";saveSlots(list,former,`${c.name} เข้าสล็อต #${c.no} แล้ว`);
     if(c.clear&&S.db)clearAtt(c.oldId,c.old)}});
-$("#slotAdd").onclick=()=>{const list=SLOTCFG.map(x=>({...x}));list.push({no:list.length+1,id:"",name:""});applySlots(list,FORMER);renderSlots();const i=$(`#slotList input[data-sn="${list.length}"]`);if(i)i.focus()};
+$("#slotAdd").onclick=()=>{const list=SLOTCFG.map(x=>({...x}));list.push({no:list.length+1,id:"",name:""});applySlots(list,FORMER);renderSlotAdmin();const i=$(`#slotList input[data-sn="${list.length}"]`);if(i)i.focus()};
 
-function renderAll(){renderSlots();renderPool();renderDc();renderCheckin();renderLootDay();renderCatalog();renderShopForm();renderRounds();renderPoints();renderSummary()}
+function renderAll(){renderSlotAdmin();renderPool();renderDc();renderCheckin();renderLootDay();renderCatalog();renderShopForm();renderRounds();renderPoints();renderSummary()}
 
 /* ---------- data ---------- */
 let unDay=null,unRange=null,unLoot=null;
